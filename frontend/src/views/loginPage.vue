@@ -57,10 +57,18 @@
 
           <!-- 扫码登录 -->
           <div v-if="loginMethod === 'qr'" class="qr-login">
-            <div class="qr-code">
-              <img src="LoginTestQR.png" alt="二维码" />
+            <div class="qr-container">
+              <div class="qr-item">
+                <!-- <img src="wechatQRCode.jpg" alt="微信二维码" class="qr-image" /> -->
+                <img src="LoginTestQR.jpg" alt="微信二维码" class="qr-image" />
+                <p class="qr-text">微信扫码登录</p>
+              </div>
+              <div class="qr-item">
+                <!-- <img src="alipayQRCode.jpg" alt="支付宝二维码" class="qr-image" /> -->
+                <img src="LoginTestQR.jpg" alt="支付宝二维码" class="qr-image" />
+                <p class="qr-text">支付宝扫码登录</p>
+              </div>
             </div>
-            <p class="qr-text">扫描二维码登录</p>
           </div>
 
           <div class="login-hint">
@@ -113,6 +121,7 @@ export default {
         this.$message.error(error.response.data.error);
       }
     },
+    
   },
 };
 </script>
@@ -223,22 +232,42 @@ export default {
 
 /* 扫码登录部分 */
 .qr-login {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+/* 容器，用于放置微信和支付宝二维码 */
+.qr-container {
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  width: 80%; 
+  max-width: 600px;
+  gap: 20px; 
+}
+
+/* 每个二维码的样式 */
+.qr-item {
   text-align: center;
+  width: 45%; 
 }
 
-.qr-code {
-  margin: 20px 0;
+/* 二维码图片样式 */
+.qr-image {
+  width: 100%; 
+  max-width: 150px; 
+  height: auto; 
+  margin-bottom: 10px; 
 }
 
-.qr-code img {
-  width: 180px;
-  height: 180px;
-}
-
+/* 二维码文字样式 */
 .qr-text {
-  font-size: 18px;
+  font-size: 14px;
   color: #333;
-  margin-top: 10px;
+  font-weight: 600;
 }
 
 /* 登录提示 */
