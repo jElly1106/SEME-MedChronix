@@ -2,12 +2,16 @@
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
-from database.models import Patient, PatientEvent, PatientRule,Disease,PatientCluster
+from sqlalchemy import func,and_
+from sqlalchemy.orm import joinedload
+
+from database.models import Patient, PatientEvent, PatientRule,Disease,PatientCluster,db
 from common.utils import upload_images
 import os
 from datetime import datetime
 import json
 from common.decorators import admin_required
+from api.event import get_event_ids_by_category
 
 patient_bp = Blueprint('patient', __name__)
 
@@ -130,6 +134,65 @@ def delete_patience():
     return jsonify({'message': 'Patient deleted successfully'}), 200
 
 
+
+
+
+
+
+
+
+
+
+@patient_bp.route('/get_latest_patient_events', methods=['GET'])
+@jwt_required()
+def get_latest_patient_events():
+    """查询 patient_event 表，获取 patient_id 对应的最新异常事件数值"""
+    
+    # 获得病人id
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Patient not found'}), 404
+    patient_id = data['patient_id']
+    
+    # 事件类别及对应 event_id 列表
+    event_categories ,status_code = get_event_ids_by_category()
+    if status_code != 200:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    # 解析查询结果
+    event_categories = event_categories.get_json()
+
+    result = {}
+
+    for category, event_ids in event_categories.items():
+        # 查询该类别中 event_id 列表对应的最新事件
+        subquery = (
+            db.session.query(
+                func.max(PatientEvent.time).label("latest_time")
+            )
+            .filter(PatientEvent.patient_id == patient_id, PatientEvent.event_id.in_(event_ids))
+            .scalar_subquery()
+        )
+
+        latest_event = (
+            db.session.query(
+                PatientEvent.event_id,
+                PatientEvent.value,
+                PatientEvent.time
+            )
+            .filter(PatientEvent.patient_id == patient_id, PatientEvent.time == subquery)
+            .order_by(PatientEvent.time.desc())
+            .first()
+        )
+
+        # 组织返回数据
+        result[category] = {
+            "event_id": latest_event.event_id,
+            "value": latest_event.value,
+            "time": latest_event.time
+        } if latest_event else {}
+
+    return jsonify(result), 200
 
 
 

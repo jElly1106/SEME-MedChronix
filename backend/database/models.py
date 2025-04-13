@@ -102,7 +102,7 @@ class Patient(db.Model):
             'age': self.age,
             'heart_history': self.heart_history,
             'diabete_history': self.diabete_history,
-            'Eh_history': self.Eh_history,
+            'Eh_history': self.EH_history,
             'other_history': self.other_history,
             'status': self.status,
         }
@@ -201,6 +201,7 @@ class PatientEvent(db.Model):
     time = db.Column(db.DateTime, nullable=True)  # 事件发生时间
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())  # 创建时间
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())  # 更新时间
+    value = db.Column(db.Float, nullable=True)  # 事件数值
 
     patient = db.relationship('Patient', backref=db.backref('patient_events', lazy=True))
     event = db.relationship('Event', backref=db.backref('patient_events', lazy=True))
