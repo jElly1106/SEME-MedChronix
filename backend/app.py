@@ -7,6 +7,7 @@ from api.disease import disease_bp
 from api.patient import patient_bp
 from api.LLM import llm_bp
 from flask_cors import CORS
+from api.event import event_bp
 # from models import Restaurant, User, Order# group_init
 
 
@@ -36,6 +37,8 @@ def create_app():
     app.register_blueprint(disease_bp, url_prefix='/api/disease')
     app.register_blueprint(patient_bp, url_prefix='/api/patient')
     app.register_blueprint(llm_bp, url_prefix='/api/llm')
+    
+    app.register_blueprint(event_bp,url_prefix='/api/event')
     with app.app_context():
         db.create_all()
 
