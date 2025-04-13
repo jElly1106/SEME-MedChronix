@@ -9,7 +9,27 @@
       <div class="login-window">
         <div class="login-content">
           <p class="login-title">用户登录</p>
-          <div class="login-form">
+
+          <!-- 登录方式切换 -->
+          <div class="login-method">
+            <a-button
+              @click="toggleLoginMethod('account')"
+              :type="loginMethod === 'account' ? 'primary' : 'default'"
+              class="login-method-btn"
+            >
+              账号登录
+            </a-button>
+            <a-button
+              @click="toggleLoginMethod('qr')"
+              :type="loginMethod === 'qr' ? 'primary' : 'default'"
+              class="login-method-btn"
+            >
+              扫码登录
+            </a-button>
+          </div>
+
+          <!-- 账号登录 -->
+          <div v-if="loginMethod === 'account'" class="login-form">
             <form>
               <input
                 type="text"
@@ -20,7 +40,6 @@
                 v-model="param.email"
                 @keyup.enter="submitForm()"
               />
-
               <input
                 type="password"
                 name="password"
@@ -30,15 +49,20 @@
                 v-model="param.password"
                 @keyup.enter="submitForm()"
               />
-              <a-button
-                @click="submitForm()"
-                style="width: 100%"
-                type="primary"
-              >
+              <a-button @click="submitForm()" style="width: 100%" type="primary">
                 登录
               </a-button>
             </form>
           </div>
+
+          <!-- 扫码登录 -->
+          <div v-if="loginMethod === 'qr'" class="qr-login">
+            <div class="qr-code">
+              <img src="LoginTestQR.png" alt="二维码" />
+            </div>
+            <p class="qr-text">扫描二维码登录</p>
+          </div>
+
           <div class="login-hint">
             没有账号?
             <router-link to="/register">点击注册</router-link>
@@ -48,6 +72,7 @@
     </div>
   </div>
 </template>
+
 
 <script>
 import Axios from "@/utils/axios.js";
@@ -62,9 +87,13 @@ export default {
         email: "邮箱",
         password: "密码",
       },
+      loginMethod: 'account', // 默认显示账号登录
     };
   },
   methods: {
+    toggleLoginMethod(method) {
+      this.loginMethod = method;
+    },
     async submitForm() {
       for (var i in this.param) {
         if (this.param[i].trim().length == 0)
@@ -85,17 +114,6 @@ export default {
       }
     },
   },
-  // methods: {
-  //   async submitForm() {
-  //     // 跳过对邮箱和密码的填写检查，直接跳转到疾病分析页面
-  //     // if (this.param.email.trim().length === 0 || this.param.password.trim().length === 0) {
-  //     //   return this.$message.error("邮箱或密码未填写");
-  //     // }
-
-  //     // 直接跳转到疾病分析页面
-  //     this.$router.push({ path: "/diseaseAnalysis" });
-  //   },
-  // },
 };
 </script>
 
@@ -109,6 +127,7 @@ export default {
   width: 100%;
   background-image: url(../assets/img/bg.jpg);
   background-size: cover;
+  padding: 0 5%;
 }
 
 /* 左侧图标部分 */
@@ -117,7 +136,7 @@ export default {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: left;
+  align-items: flex-start;
   position: absolute;
   left: 0;
   top: 120px;
@@ -127,45 +146,49 @@ export default {
   position: relative;
   left: 15%;
   font: 900 120px "楷体", serif;
-  /* color: #3c4ae8; */
   color: #000;
 }
+
 .subtitle {
   position: relative;
   left: 5%;
   font: 600 60px "楷体", serif;
-  /* color: #3c4ae8; */
   color: #000;
   margin-top: 5%;
 }
+
 /* 右侧登录框部分 */
 .right-section {
   flex: 1;
   display: flex;
   justify-content: flex-end;
-  padding-right: 10%; /* 控制右侧边距 */
+  padding-right: 10%;
+  padding-top: 50px; /* 上边距，避免太紧凑 */
 }
 
 .login-window {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   width: 350px;
   height: 550px;
   display: flex;
   border-radius: 10px;
   justify-content: center;
   align-items: center;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .login-content {
-  width: 300px;
+  width: 100%;
+  max-width: 300px;
   height: 450px;
   overflow: hidden;
+  padding: 20px;
 }
 
 /* 登录框标题 */
 .login-title {
   font: 700 40px "楷体", serif;
-  margin: 60px 0;
+  margin: 20px 0;
   text-align: center;
   letter-spacing: 5px;
 }
@@ -179,11 +202,53 @@ export default {
   border-radius: 5px;
   padding: 10px;
   font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.login-param:focus {
+  border-color: #3c4ae8;
+}
+
+/* 登录方式切换按钮 */
+.login-method {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.login-method-btn {
+  width: 48%;
+  font-size: 14px;
+}
+
+/* 扫码登录部分 */
+.qr-login {
+  text-align: center;
+}
+
+.qr-code {
+  margin: 20px 0;
+}
+
+.qr-code img {
+  width: 180px;
+  height: 180px;
+}
+
+.qr-text {
+  font-size: 18px;
+  color: #333;
+  margin-top: 10px;
 }
 
 /* 登录提示 */
 .login-hint {
-  margin: 23px;
+  margin-top: 20px;
   text-align: center;
+  font-size: 14px;
+}
+
+.login-hint a {
+  color: #3c4ae8;
 }
 </style>
