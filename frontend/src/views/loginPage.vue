@@ -1,48 +1,34 @@
 <template>
-  <div class="login-body">
-    <div class="left-section">
-      <!-- 左侧的“智脉时序”图标 -->
-      <h1 class="logo-title">智脉时序</h1>
-      <h2 class="subtitle">基于深度点过程和VLM的脑卒中</h2>
-      <h2 class="subtitle">辅助诊断平台</h2>
-    </div>
-    <div class="right-section">
-      <div class="login-window">
-        <div class="login-content">
-          <p class="login-title">用户登录</p>
-          <div class="login-form">
-            <form>
-              <input
-                type="text"
-                name="email"
-                class="login-param"
-                placeholder="邮箱"
-                required
-                v-model="param.email"
-                @keyup.enter="submitForm()"
-              />
-
-              <input
-                type="password"
-                name="password"
-                class="login-param"
-                placeholder="密码"
-                required
-                v-model="param.password"
-                @keyup.enter="submitForm()"
-              />
-              <a-button
-                @click="submitForm()"
-                style="width: 100%"
-                type="primary"
-              >
-                登录
-              </a-button>
-            </form>
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-card">
+        <h2 class="login-title">用户登录</h2>
+        <div class="login-form">
+          <div class="form-group">
+            <label for="email">邮箱</label>
+            <input
+              type="text"
+              id="email"
+              v-model="param.email"
+              placeholder="请输入邮箱"
+              @keyup.enter="submitForm()"
+            />
           </div>
-          <div class="login-hint">
-            没有账号?
-            <router-link to="/register">点击注册</router-link>
+          <div class="form-group">
+            <label for="password">密码</label>
+            <input
+              type="password"
+              id="password"
+              v-model="param.password"
+              placeholder="请输入密码"
+              @keyup.enter="submitForm()"
+            />
+          </div>
+          <div class="form-actions">
+            <button class="login-btn" @click="submitForm()">登录</button>
+          </div>
+          <div class="login-footer">
+            <p>没有账号? <router-link to="/register">点击注册</router-link></p>
           </div>
         </div>
       </div>
@@ -52,7 +38,12 @@
 
 <script>
 import Axios from "@/utils/axios.js";
+import { ElMessage } from 'element-plus';
+
+
+
 export default {
+  // 移除 LoginTopbar 组件
   data() {
     return {
       param: {
@@ -67,113 +58,198 @@ export default {
   },
   methods: {
     async submitForm() {
-      for (var i in this.param) {
-        if (this.param[i].trim().length == 0)
-          return this.$message.error(this.paramTitle[i] + "未填写");
-      }
       try {
-        const res = await Axios.post("/user/login", this.param);
-        if (res.success == false) {
-          this.$message.error(res.data.message);
+        // 简单的表单验证
+        if (!this.param.email) {
+          ElMessage.error('请输入邮箱');
+          return;
+        }
+        if (!this.param.password) {
+          ElMessage.error('请输入密码');
+          return;
+        }
+        
+        // 显示加载状态
+        this.loading = true;
+        
+        // 发送登录请求
+        const response = await Axios.post('/user/login', {
+          email: this.param.email,
+          password: this.param.password
+        });
+        
+        // 确保 response 存在且有 data 属性
+        if (response && response.data) {
+          // 处理登录成功
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('qualificationStatus', response.data.qualificationStatus);
+          localStorage.setItem('isAdmin', response.data.is_admin);
+
+          if (response.data.role === 'admin') {
+            // 管理员用户直接跳转到资质认证页面
+            this.$router.push('/qualification-review');
+          } else {
+            // 普通用户跳转到首页或其他页面
+            this.$router.push('/diseaseAnalysis');
+          }
+          
+          ElMessage.success('登录成功');
+          
         } else {
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("user_id", res.data.user_id);
-          this.$message.success(res.data.message);
-          this.$router.push({ path: "/home" });
+          // 响应存在但没有预期的数据
+          ElMessage.error('登录失败：服务器响应异常');
+          console.error('登录响应异常:', response);
         }
       } catch (error) {
-        this.$message.error(error.response.data.error);
+        // 处理错误
+        if (error.response && error.response.data) {
+          // 服务器返回了错误信息
+          ElMessage.error(`登录失败：${error.response.data.message || '未知错误'}`);
+        } else if (error.message) {
+          // 请求过程中发生错误
+          ElMessage.error(`登录失败：${error.message}`);
+        } else {
+          // 其他未知错误
+          ElMessage.error('登录失败：网络错误或服务器无响应');
+        }
+        console.error('登录错误:', error);
+      } finally {
+        // 无论成功或失败，都关闭加载状态
+        this.loading = false;
       }
+    },
+    goToDashboard() {
+      this.$router.push({ path: "/" });
     },
   },
 };
 </script>
 
 <style scoped>
-/* 主体布局 */
-.login-body {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100vh;
-  width: 100%;
-  background-image: url(../assets/img/bg.jpg);
-  background-size: cover;
-}
-
-/* 左侧图标部分 */
-.left-section {
-  flex: 2;
+.login-page {
+  min-height: 100vh;
+  background-color: #e5eafc;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: left;
+  position: relative;
+}
+
+/* 新增返回首页按钮样式 */
+.back-home-btn {
   position: absolute;
-  left: 0;
-  top: 120px;
+  top: 20px;
+  left: 20px;
+  background-color: #ffffff;
+  color: #2d5bff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
 }
 
-.logo-title {
-  position: relative;
-  left: 15%;
-  font: 900 120px "楷体", serif;
-  /* color: #3c4ae8; */
-  color: #000;
-}
-.subtitle {
-  position: relative;
-  left: 5%;
-  font: 600 60px "楷体", serif;
-  /* color: #3c4ae8; */
-  color: #000;
-  margin-top: 5%;
-}
-/* 右侧登录框部分 */
-.right-section {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-  padding-right: 10%; /* 控制右侧边距 */
+.back-home-btn:hover {
+  background-color: #f0f2f5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.login-window {
-  background-color: rgba(255, 255, 255, 0.8);
-  width: 350px;
-  height: 550px;
+.login-container {
   display: flex;
-  border-radius: 10px;
   justify-content: center;
   align-items: center;
+  flex: 1;
+  padding: 20px;
 }
 
-.login-content {
-  width: 300px;
-  height: 450px;
-  overflow: hidden;
-}
-
-/* 登录框标题 */
-.login-title {
-  font: 700 40px "楷体", serif;
-  margin: 60px 0;
-  text-align: center;
-  letter-spacing: 5px;
-}
-
-/* 输入框样式 */
-.login-param {
+.login-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   width: 100%;
-  margin-bottom: 20px;
-  outline: none;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  font-size: 16px;
+  max-width: 400px; /* 调整卡片宽度 */
+  padding: 30px;
 }
 
-/* 登录提示 */
-.login-hint {
-  margin: 23px;
+.login-title {
+  color: #2d5bff;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 30px;
   text-align: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* 调整输入框大小和样式 */
+.form-group input {
+  width: 100%;
+  height: 45px; /* 固定高度 */
+  padding: 0 15px; /* 调整内边距 */
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.3s;
+  box-sizing: border-box; /* 确保宽度包含内边距和边框 */
+}
+
+.form-group input:focus {
+  border-color: #2d5bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 91, 255, 0.1);
+}
+
+.form-actions {
+  margin-top: 30px;
+}
+
+.login-btn {
+  width: 100%;
+  background-color: #2d5bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  height: 45px; /* 固定高度 */
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+  background-color: #1a46e0;
+}
+
+.login-footer {
+  margin-top: 25px;
+  text-align: center;
+  color: #666;
+}
+
+.login-footer a {
+  color: #2d5bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
 }
 </style>

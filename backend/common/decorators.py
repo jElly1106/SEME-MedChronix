@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from response import ResponseCode
+from .response import ResponseCode
 import json
 def admin_required(fn):
     """装饰函数，用于检查用户是否是管理员。"""
