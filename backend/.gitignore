@@ -168,3 +168,9 @@ models/
 misc/
 data_analysis/models
 data_analysis/plots
+
+*.png
+*.jpg
+*.jpeg
+test_data/
+scripts/

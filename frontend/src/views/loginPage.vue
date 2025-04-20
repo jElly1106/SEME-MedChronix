@@ -1,8 +1,5 @@
 <template>
   <div class="login-page">
-    <!-- 返回首页按钮 -->
-   
-
     <div class="login-container">
       <div class="login-card">
         <h2 class="login-title">用户登录</h2>
@@ -41,6 +38,9 @@
 
 <script>
 import Axios from "@/utils/axios.js";
+import { ElMessage } from 'element-plus';
+
+
 
 export default {
   // 移除 LoginTopbar 组件
@@ -58,41 +58,64 @@ export default {
   },
   methods: {
     async submitForm() {
-      for (var i in this.param) {
-        if (this.param[i].trim().length == 0)
-          return this.$message.error(this.paramTitle[i] + "未填写");
-      }
       try {
-        const res = await Axios.post("/user/login", this.param);
-        if (res.success == false) {
-          this.$message.error(res.data.message);
-        } else {
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("user_id", res.data.user_id);
+        // 简单的表单验证
+        if (!this.param.email) {
+          ElMessage.error('请输入邮箱');
+          return;
+        }
+        if (!this.param.password) {
+          ElMessage.error('请输入密码');
+          return;
+        }
+        
+        // 显示加载状态
+        this.loading = true;
+        
+        // 发送登录请求
+        const response = await Axios.post('/user/login', {
+          email: this.param.email,
+          password: this.param.password
+        });
+        
+        // 确保 response 存在且有 data 属性
+        if (response && response.data) {
+          // 处理登录成功
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('qualificationStatus', response.data.qualificationStatus);
+          localStorage.setItem('isAdmin', response.data.is_admin);
 
-          // 存储用户资质验证状态
-          if (res.data.qualificationStatus) {
-            localStorage.setItem(
-              "qualificationStatus",
-              res.data.qualificationStatus
-            );
+          if (response.data.role === 'admin') {
+            // 管理员用户直接跳转到资质认证页面
+            this.$router.push('/qualification-review');
           } else {
-            // 如果后端未返回资质状态，默认设为未验证
-            localStorage.setItem("qualificationStatus", "none");
+            // 普通用户跳转到首页或其他页面
+            this.$router.push('/diseaseAnalysis');
           }
-
-          // 存储用户是否为管理员
-          if (res.data.isAdmin) {
-            localStorage.setItem("isAdmin", res.data.isAdmin);
-          }
-          if (res.data.isAuth) {
-            localStorage.setItem("qualificationStatus", res.data.isAuth);
-          }
-          this.$message.success(res.data.message);
-          this.$router.push({ path: "/diseaseAnalysis" });
+          
+          ElMessage.success('登录成功');
+          
+        } else {
+          // 响应存在但没有预期的数据
+          ElMessage.error('登录失败：服务器响应异常');
+          console.error('登录响应异常:', response);
         }
       } catch (error) {
-        this.$message.error(error.response.data.error);
+        // 处理错误
+        if (error.response && error.response.data) {
+          // 服务器返回了错误信息
+          ElMessage.error(`登录失败：${error.response.data.message || '未知错误'}`);
+        } else if (error.message) {
+          // 请求过程中发生错误
+          ElMessage.error(`登录失败：${error.message}`);
+        } else {
+          // 其他未知错误
+          ElMessage.error('登录失败：网络错误或服务器无响应');
+        }
+        console.error('登录错误:', error);
+      } finally {
+        // 无论成功或失败，都关闭加载状态
+        this.loading = false;
       }
     },
     goToDashboard() {

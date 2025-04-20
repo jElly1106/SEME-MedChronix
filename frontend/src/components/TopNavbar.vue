@@ -45,14 +45,8 @@
               个人信息管理
             </div>
             <!-- 管理员专用：资质审核入口 -->
-            <div
-              class="dropdown-item"
-              v-if="isAdmin"
-              @click="goToQualificationReview"
-            >
-              <i class="dropdown-icon">📋</i>
-              资质审核管理
-            </div>
+
+              
             <div class="dropdown-item logout" @click="logout">
               <i class="dropdown-icon">🚪</i>
               退出登录
@@ -69,6 +63,17 @@ export default {
   name: "TopNavbar",
   data() {
     return {
+      items: [
+        { name: "总体概览", requiresQualification: true },
+        { name: "病人详情", requiresQualification: true },
+        { name: "疾病分析", requiresQualification: true },
+      ],
+      routers: [
+        { name: "总体概览", path: "/home" },
+        { name: "病人详情", path: "/patientAnalysis" },
+        { name: "疾病分析", path: "/diseaseAnalysis" },
+      ],
+      selected: null,
       showDropdown: false,
       // 用户信息，实际应从用户存储或API获取
       userName: "王医生",
@@ -76,6 +81,30 @@ export default {
       isAdmin: false, // 是否为管理员，实际应从用户权限中获取
       qualificationStatus: "approved", // 用户资质验证状态
     };
+  },
+  computed: {
+    // 根据用户资质状态过滤导航项
+    filteredNavItems() {
+      if (this.qualificationStatus === "approved") {
+        // 资质已验证，显示所有导航项
+        return this.items;
+      } else {
+        // 资质未验证，只显示不需要资质验证的导航项
+        return this.items.filter((item) => !item.requiresQualification);
+      }
+    },
+  },
+  created() {
+    // 根据当前路径设置初始选中项
+    const currentPath = this.$route.path;
+    const matchedRoute = this.routers.find(
+      (route) => route.path === currentPath
+    );
+    if (matchedRoute) {
+      this.selected = matchedRoute.name;
+    } else {
+      this.selected = "总体概览"; // 默认选中项
+    }
   },
   mounted() {
     // 点击页面其他区域关闭下拉菜单
@@ -89,6 +118,10 @@ export default {
     document.removeEventListener("click", this.handleClickOutside);
   },
   methods: {
+    selectItem(name) {
+      this.selected = name; // 更新选中的项
+      this.$router.push(this.routers.find((item) => item.name === name).path); // 跳转到对应的路由
+    },
     toggleDropdown() {
       this.showDropdown = !this.showDropdown;
     },
@@ -102,10 +135,6 @@ export default {
     },
     goToUserProfile() {
       this.$router.push("/profile");
-      this.showDropdown = false;
-    },
-    goToQualificationReview() {
-      this.$router.push("/qualification-review");
       this.showDropdown = false;
     },
     logout() {

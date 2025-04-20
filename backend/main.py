@@ -12,6 +12,6 @@ app = create_app()
 #     # print(response.headers)
 #     return response
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    # socketio.run(app, debug=True)
     # socketio.run(app, host='0.0.0.0', debug=True)  # 监听所有网络接口
-    # app.run(debug=True)
+    app.run(debug=True)

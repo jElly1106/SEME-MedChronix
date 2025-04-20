@@ -6,7 +6,8 @@ import registerPage from '@/views/registerPage.vue'
 import diseaseAnalysisPage from '@/views/diseaseAnalysisPage.vue'; // 假设这个是你疾病分析页面的路径
 import ProfilePage from '@/views/ProfilePage.vue'; // 个人信息管理页面
 import QualificationReviewPage from '@/views/QualificationReviewPage.vue'; // 资质审核页面
-
+import permissionConfigPage from '@/views/permissionConfigPage.vue';
+import auditLogPage from '@/views/auditLogPage.vue';
 
 // TODO 转到admin由login页面决定
 const router = createRouter({
@@ -31,10 +32,10 @@ const router = createRouter({
             path: '/diseaseAnalysis',
             name: 'DiseaseAnalysis',
             component: diseaseAnalysisPage,
-            // meta: {
-            //     requiresAuth: true,
-            //     requiresQualification: true // 需要资质验证
-            // }
+            meta: {
+                requiresAuth: true,
+                requiresQualification: true // 需要资质验证
+            }
         },
         {
             path: '/profile',
@@ -48,13 +49,33 @@ const router = createRouter({
             path: '/qualification-review',
             name: 'QualificationReview',
             component: QualificationReviewPage,
-            // meta: {
-            //     requiresAuth: true,
-            //     requiresAdmin: true // 需要管理员权限
-            // }
+            meta: {
+                requiresAuth: true,
+                requiresAdmin: true // 需要管理员权限
+            }
+        },
+        {
+            path: '/permission-config',
+            name: 'PermissionConfig',
+            component:  permissionConfigPage,
+            meta: {
+                requiresAuth: true,
+                requiresAdmin: true // 需要管理员权限
+            }
+        },
+        {
+            path: '/audit-log',
+            name: 'AuditLog',
+            component:  auditLogPage,
+            meta: {
+                requiresAuth: true,
+                requiresAdmin: true // 需要管理员权限
+            }
         },
     ]
 })
+
+
 
 // 全局路由前置守卫
 // router.beforeEach((to, from, next) => {

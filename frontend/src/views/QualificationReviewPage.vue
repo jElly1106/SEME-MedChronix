@@ -1,10 +1,8 @@
 <template>
   <div class="review-page">
+    <AdminTopNavbar />
     <div class="review-container">
       <div class="back-button-container">
-        <button class="back-button" @click="goBackToSystem">
-          <i class="fas fa-arrow-left"></i> 返回系统
-        </button>
       </div>
       <div class="page-header">
         <h1>资质审核管理</h1>
@@ -263,8 +261,12 @@
 <script>
 // import TopNavbar from "@/components/TopNavbar.vue";
 import Axios from "@/utils/axios.js";
+import AdminTopNavbar from '@/components/AdminTopNavbar.vue';
 export default {
   name: "QualificationReviewPage",
+  components: {
+    AdminTopNavbar
+  },
   //   components: {
   //     TopNavbar,
   //   },
@@ -303,9 +305,6 @@ export default {
     this.fetchAllCertifications();
   },
   methods: {
-    goBackToSystem() {
-      this.$router.push("/diseaseAnalysis");
-    },
     selectApplication(application) {
       // 选择申请时获取详细信息
       this.getCertificationDetail(application.id);
