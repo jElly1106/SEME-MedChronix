@@ -107,26 +107,26 @@
         <!-- 左侧两个卡片：一个雷达图，一个词频图 -->
         <div class="card">
           <div class="card-content">
-            <RadarChart v-if="isDataReady"
-            :selected="radarChartData" />
+            <RadarChart v-if="isDataReady" :selected="radarChartData" />
           </div>
         </div>
 
         <div class="card">
           <div class="card-content">
-            <WordFrequencyChart v-if="isDataReady"
-            :wordFrequencyData="wordFrequencyData" />
+            <WordFrequencyChart
+              v-if="isDataReady"
+              :wordFrequencyData="wordFrequencyData"
+            />
           </div>
         </div>
       </div>
 
       <div class="right-column">
-        
         <!-- 上半部分 - 图表区域 -->
         <div class="chart-container">
           <ChartComponent
-          v-if="isDataReady"
-          :patientEventData="patientChartData"
+            v-if="isDataReady"
+            :patientEventData="patientChartData"
             :clusterData="patientClusterData"
           />
         </div>
@@ -135,7 +135,10 @@
           <div class="left-half">
             <div class="model-explanation">
               <h3>图表解释</h3>
-              <div v-if="chartExplanation" v-html="parseMarkdown(chartExplanation)"></div>
+              <div
+                v-if="chartExplanation"
+                v-html="parseMarkdown(chartExplanation)"
+              ></div>
               <div v-else-if="isAnalyzing" class="loading-text">
                 <div class="loading-spinner"></div>
                 <p>正在分析图表数据，请稍候...</p>
@@ -250,14 +253,12 @@ export default {
 
       // 获取所有选中病人的ID列表
       const patientIds = this.selectedPatients.map((patient) => patient.id);
-      console.log("4_9 patientIds", patientIds);
       // 将ID列表作为查询参数传递
       Axios.get(
         `/predict/get_cluster_result?patient_id=${patientIds.join(",")}`
       )
         .then((response) => {
           if (response.data.success) {
-            console.log("获取图表数据成功:", response.data);
             this.patientChartData = response.data.patientEventData;
             this.patientClusterData = response.data.clusterData;
           } else {
@@ -279,8 +280,6 @@ export default {
         patient_ids: patientIds,
       })
         .then((response) => {
-          console.log("获取词频数据成功:", response.data);
-
           // 转换数据格式为词云图所需格式
           this.wordFrequencyData = response.data.map((item) => ({
             name: item.event_name,
@@ -298,7 +297,6 @@ export default {
 
       // 提取所有选中病人的ID
       const patientIds = this.selectedPatients.map((patient) => patient.id);
-      console.log("4_8 patientIds", patientIds);
       // 定义需要获取的事件ID
       const eventIds = [1, 2, 3, 4, 5, 6];
 
@@ -308,8 +306,6 @@ export default {
         event_ids: eventIds,
       })
         .then((response) => {
-          console.log("获取雷达图数据成功:", response.data);
-
           // 转换数据格式为雷达图所需格式
           this.radarChartData = this.selectedPatients.map((patient) => {
             const patientData = response.data[patient.id] || {};
@@ -389,94 +385,115 @@ export default {
         this.$message.error("请先选择病人并加载图表数据");
         return;
       }
-      
+
       this.isAnalyzing = true; // 设置加载状态为true
-      
+
       // 准备图表数据
       const chartData = {
         patientEventData: this.patientChartData,
-        clusterData: this.patientClusterData
+        clusterData: this.patientClusterData,
       };
-      
+
       // 构建问题文本，包含图表数据的JSON字符串
-      const questionText = `这是一张病人病程聚类图以及画该图时使用的数据，每一个节点代表一个病人发生的异常事件，不同颜色的线代表不同的病人，如果线合为一簇则代表从该时刻开始病人属于一个类型，请从专业医生的角度分析为什么这几条事件序列可以聚类成这样的聚类结果包括病人之间的相似性和差异性，提供相关依据，不要太多\n\n图表数据：${JSON.stringify(chartData, null, 2)}`;
-      
+      const questionText = `这是一张病人病程聚类图以及画该图时使用的数据，每一个节点代表一个病人发生的异常事件，不同颜色的线代表不同的病人，如果线合为一簇则代表从该时刻开始病人属于一个类型，请从专业医生的角度分析为什么这几条事件序列可以聚类成这样的聚类结果包括病人之间的相似性和差异性，提供相关依据，不要太多\n\n图表数据：${JSON.stringify(
+        chartData,
+        null,
+        2
+      )}`;
+
       // 等待图表完全渲染
       this.$nextTick(() => {
         // 使用html2canvas捕获图表
-        import('html2canvas').then(html2canvas => {
-          const chartElement = document.querySelector('.chart-container');
-          
-          if (!chartElement) {
-            this.isAnalyzing = false;
-            this.$message.error("无法找到图表元素");
-            return;
-          }
-          
-          html2canvas.default(chartElement, {
-            useCORS: true,
-            allowTaint: true,
-            scale: 2,
-            logging: false
-          }).then(canvas => {
-            // 将canvas转为blob
-            canvas.toBlob(blob => {
-              if (!blob) {
-                this.isAnalyzing = false;
-                this.$message.error("无法生成图表图片");
-                return;
-              }
-              
-              console.log("图片生成成功，大小:", blob.size, "字节");
-              
-              // 创建FormData对象
-              const formData = new FormData();
-              formData.append('image', blob, 'chart.png');
-              formData.append('question', questionText);
-              
-              // 发送请求到多模态接口
-              Axios.post('/llm/multimodal', formData, {
-                headers: {
-                  'Content-Type': 'multipart/form-data'
-                },
-                timeout: 120000 // 增加超时时间到2分钟
+        import("html2canvas")
+          .then((html2canvas) => {
+            const chartElement = document.querySelector(".chart-container");
+
+            if (!chartElement) {
+              this.isAnalyzing = false;
+              this.$message.error("无法找到图表元素");
+              return;
+            }
+
+            html2canvas
+              .default(chartElement, {
+                useCORS: true,
+                allowTaint: true,
+                scale: 2,
+                logging: false,
               })
-                .then(response => {
-                  console.log("图表解释响应:", response.data);
-                  if (response.data && response.data.result) {
-                    this.chartExplanation = response.data.result;
-                  } else {
-                    this.chartExplanation = "服务器返回了空结果，请稍后再试。";
-                  }
-                  this.isAnalyzing = false; // 请求完成，设置加载状态为false
-                })
-                .catch(error => {
-                  console.error("获取图表解释失败:", error);
-                  
-                  let errorMessage = "未知错误";
-                  if (error.response) {
-                    errorMessage = `服务器错误 (${error.response.status}): ${error.response.data.message || error.response.data.error || "请检查服务器日志"}`;
-                    console.error("服务器响应:", error.response.data);
-                  } else if (error.request) {
-                    errorMessage = "服务器未响应，请检查后端服务是否正常运行";
-                  } else {
-                    errorMessage = `请求错误: ${error.message}`;
-                  }
-                  
-                  this.chartExplanation = `分析图表时发生错误: ${errorMessage}`;
-                  this.isAnalyzing = false; // 请求失败，设置加载状态为false
-                });
-            }, 'image/png', 0.9); // 使用0.9的质量，减小图片大小
-          }).catch(error => {
-            console.error("生成图表截图失败:", error);
+              .then((canvas) => {
+                // 将canvas转为blob
+                canvas.toBlob(
+                  (blob) => {
+                    if (!blob) {
+                      this.isAnalyzing = false;
+                      this.$message.error("无法生成图表图片");
+                      return;
+                    }
+
+                    // console.log("图片生成成功，大小:", blob.size, "字节");
+
+                    // 创建FormData对象
+                    const formData = new FormData();
+                    formData.append("image", blob, "chart.png");
+                    formData.append("question", questionText);
+
+                    // 发送请求到多模态接口
+                    Axios.post("/llm/multimodal", formData, {
+                      headers: {
+                        "Content-Type": "multipart/form-data",
+                      },
+                      timeout: 120000, // 增加超时时间到2分钟
+                    })
+                      .then((response) => {
+                        // console.log("图表解释响应:", response.data);
+                        if (response.data && response.data.result) {
+                          this.chartExplanation = response.data.result;
+                        } else {
+                          this.chartExplanation =
+                            "服务器返回了空结果，请稍后再试。";
+                        }
+                        this.isAnalyzing = false; // 请求完成，设置加载状态为false
+                      })
+                      .catch((error) => {
+                        console.error("获取图表解释失败:", error);
+
+                        let errorMessage = "未知错误";
+                        if (error.response) {
+                          errorMessage = `服务器错误 (${
+                            error.response.status
+                          }): ${
+                            error.response.data.message ||
+                            error.response.data.error ||
+                            "请检查服务器日志"
+                          }`;
+                          console.error("服务器响应:", error.response.data);
+                        } else if (error.request) {
+                          errorMessage =
+                            "服务器未响应，请检查后端服务是否正常运行";
+                        } else {
+                          errorMessage = `请求错误: ${error.message}`;
+                        }
+
+                        this.chartExplanation = `分析图表时发生错误: ${errorMessage}`;
+                        this.isAnalyzing = false; // 请求失败，设置加载状态为false
+                      });
+                  },
+                  "image/png",
+                  0.9
+                ); // 使用0.9的质量，减小图片大小
+              })
+              .catch((error) => {
+                console.error("生成图表截图失败:", error);
+                this.isAnalyzing = false;
+                this.chartExplanation = "无法生成图表截图，请稍后再试。";
+              });
+          })
+          .catch((error) => {
+            console.error("加载html2canvas失败:", error);
             this.isAnalyzing = false;
-            this.chartExplanation = "无法生成图表截图，请稍后再试。";
+            this.chartExplanation = "加载截图工具失败，请刷新页面后再试。";
           });
-        }).catch(error => {
-          console.error("加载html2canvas失败:", error);
-          this.isAnalyzing = false;
-          this.chartExplanation = "加载截图工具失败，请刷新页面后再试。";
-        });
       });
     },
 
@@ -491,17 +508,11 @@ export default {
       this.fetchAllPatients();
     },
     async fetchAllPatients() {
-      console.log("开始请求获取病人数据:", new Date().toLocaleTimeString());
-
       try {
         const t0 = performance.now();
         const response = await Axios.get("/patient/all");
         const t1 = performance.now();
-        console.log("实际耗时：", t1 - t0);
         //const response = await Axios.get("/patient/all");
-
-        console.log("获取病人数据成功:", response.data);
-        console.log("请求完成时间:", new Date().toLocaleTimeString());
 
         // 暂存数据（避免直接赋给响应式）
         const rawPatients = response.data.map((patient) => ({
@@ -513,34 +524,29 @@ export default {
           icuExitTime: patient.out_icu,
           isSelected: false,
         }));
-        console.log("挂载完成时间:", new Date().toLocaleTimeString());
         // 延迟少许时间再挂载组件
         setTimeout(() => {
-        console.time("赋值 + 图表加载");
-        this.patients = rawPatients;
-        this.selectedPatients = rawPatients.slice(0, 1);
-        this.patients.forEach((p, idx) => {
-          if (idx < 1) p.isSelected = true;
-        });
-        
-        // 延迟加载图表
-        //this.fetchRadarChartDataAsync();
-        //setTimeout(() => {
-        //  this.fetchChartDataAsync();
-        //}, 0);
-        //setTimeout(() => {
-        //  this.fetchWordFrequencyDataAsync();
-        //}, 0);
-        Promise.all([
-          this.fetchRadarChartDataAsync(),
-          this.fetchWordFrequencyDataAsync(),
-          this.fetchChartDataAsync()
-        ]);
-        this.isDataReady = true;
+          this.patients = rawPatients;
+          this.selectedPatients = rawPatients.slice(0, 1);
+          this.patients.forEach((p, idx) => {
+            if (idx < 1) p.isSelected = true;
+          });
 
-        console.timeEnd("赋值 + 图表加载");
-      }, 0);
-
+          // 延迟加载图表
+          //this.fetchRadarChartDataAsync();
+          //setTimeout(() => {
+          //  this.fetchChartDataAsync();
+          //}, 0);
+          //setTimeout(() => {
+          //  this.fetchWordFrequencyDataAsync();
+          //}, 0);
+          Promise.all([
+            this.fetchRadarChartDataAsync(),
+            this.fetchWordFrequencyDataAsync(),
+            this.fetchChartDataAsync(),
+          ]);
+          this.isDataReady = true;
+        }, 0);
       } catch (error) {
         console.error("获取病人数据失败:", error);
       }
@@ -554,21 +560,20 @@ export default {
     confirmPatientSelection() {
       // 获取所有选中的病人
       const selectedPatients = this.patients.filter((p) => p.isSelected);
-      
+
       // 检查选中的病人数量是否超过6个
       if (selectedPatients.length > 6) {
         // 使用自定义弹窗或Element UI的消息提示
         this.$message.warning("最多只能选择6个病人进行对比分析");
         return;
       }
-      
+
       this.selectedPatients = selectedPatients; // 更新选中的病人列表
-      console.log("已选择的病人:", this.selectedPatients);
       this.showModal = false; // 关闭弹窗
       Promise.all([
         this.fetchRadarChartDataAsync(),
         this.fetchWordFrequencyDataAsync(),
-        this.fetchChartDataAsync()
+        this.fetchChartDataAsync(),
       ]);
     },
     applyFilters() {
@@ -767,7 +772,7 @@ export default {
   padding-left: 10px;
   border-radius: 8px;
   height: 100%;
-  max-height:360px;
+  max-height: 360px;
   overflow: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -780,6 +785,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  max-height: 360px; /* 限制最大高度 */
   flex: 1;
   overflow: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -1151,8 +1157,12 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Markdown 渲染样式 */
@@ -1285,8 +1295,12 @@ export default {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Markdown 渲染样式 */
@@ -1326,5 +1340,4 @@ export default {
   border-radius: 4px;
   font-family: monospace;
 }
-
 </style>

@@ -402,7 +402,7 @@ export default {
       }
     },
     goBackToSystem() {
-      this.$router.push("/diseaseAnalysis");
+      this.$router.push("/home");
     },
     startEditing() {
       this.editingUserInfo = { ...this.userInfo };

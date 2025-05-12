@@ -2,9 +2,9 @@
   <div class="chart-section">
     <div class="chart-wrapper">
       <!-- 刷新按钮放在外层，确保不被 ECharts 覆盖 -->
-      <button class="refresh-button" @click="refreshChart">
+      <!-- <button class="refresh-button" @click="refreshChart">
         <i class="refresh-icon">↻</i>
-      </button>
+      </button> -->
       <!-- 图表容器，供 ECharts 挂载 -->
       <div class="chart-container" ref="chart"></div>
     </div>
@@ -19,47 +19,43 @@ export default {
   props: {
     patientEventData: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     clusterData: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
       chartInstance: null,
       resizeTimer: null,
-      zoomTimer: null,
     };
   },
   watch: {
     patientEventData: {
-      handler(newVal) {
-        console.log('patientEventData 发生变化:', newVal);
+      handler() {
         this.refreshChart();
       },
-      deep: true
+      deep: true,
     },
     clusterData: {
-      handler(newVal) {
-        console.log('clusterData 发生变化:', newVal);
+      handler() {
         this.refreshChart();
       },
-      deep: true
-    }
+      deep: true,
+    },
   },
   mounted() {
-    try {
-      // Wait for DOM to be ready
-      this.$nextTick(() => {
-        console.log('DOM is ready');
-        this.initChart();
-      });
-    } catch (error) {
-      console.error("Error in mounted hook:", error);
-    }
-    //this.initChart();
+    // try {
+    //   // Wait for DOM to be ready
+    //   this.$nextTick(() => {
+    //     console.log("DOM is ready");
+    //   });
+    // } catch (error) {
+    //   console.error("Error in mounted hook:", error);
+    // }
+    this.initChart();
   },
   methods: {
     initChart() {
@@ -67,20 +63,20 @@ export default {
       this.chartInstance = echarts.init(this.$refs.chart);
       console.log("卡片内部数据", this.patientEventData);
       console.log("聚类数据", this.clusterData);
-      
+
       // 使用传入的数据，如果没有数据则不渲染图表
       if (this.patientEventData.length === 0 || this.clusterData.length === 0) {
         // 显示无数据提示
         this.chartInstance.setOption({
           title: {
-            text: '暂无数据',
-            left: 'center',
-            top: 'center',
+            text: "暂无数据",
+            left: "center",
+            top: "center",
             textStyle: {
-              color: '#999',
-              fontSize: 16
-            }
-          }
+              color: "#999",
+              fontSize: 16,
+            },
+          },
         });
         return;
       }
@@ -102,6 +98,7 @@ export default {
             name: "初始状态",
             value_display: 0,
             patientId: patient.patientId,
+            realTime: 0,
           },
           ...patient.events.map((event) => {
             // 计算同一小时内的事件偏移
@@ -138,6 +135,7 @@ export default {
               name: event.name,
               value_display: event.value,
               patientId: patient.patientId,
+              realTime: event.hour,
             };
           }),
         ];
@@ -145,7 +143,7 @@ export default {
         return {
           name: patient.patientId,
           type: "scatter",
-          symbolSize: 15,          
+          symbolSize: 12,
           data: data,
           itemStyle: { color: color },
           emphasis: {
@@ -154,7 +152,7 @@ export default {
               color: color,
               borderColor: "#fff",
               borderWidth: 2,
-              shadowBlur: 10,
+              shadowBlur: 5,
               shadowColor: "rgba(0, 0, 0, 0.3)",
             },
             scale: true, // 允许缩放效果
@@ -196,11 +194,11 @@ export default {
                   <p><strong>异常事件:</strong> ${
                     params.data?.name || "未知"
                   }</p>
-                  <p><strong>严重程度:</strong> ${
+                  <p><strong>异常值:</strong> ${
                     params.data?.value_display || "未知"
                   }</p>
                   <p><strong>发生时间:</strong> ${
-                    Math.round(params.data?.value?.[0]) || "未知"
+                    Math.round(params.data?.realTime) || "未知"
                   }时</p>
                 </div>
               `;
@@ -219,7 +217,7 @@ export default {
           left: 20,
           top: 20,
           orient: "horizontal",
-          selectedMode: false,
+          selectedMode: true,
           data: patientIds,
           textStyle: {
             color: "#333",
@@ -242,6 +240,13 @@ export default {
           },
           formatter: (name) => `病人 ${name}`,
         },
+        toolbox: {
+          right: 20,
+          top: 20,
+          feature: {
+            restore: { title: "还原" },
+          },
+        },
         xAxis: {
           type: "value",
           name: "时间（小时）",
@@ -250,61 +255,40 @@ export default {
           min: 0,
           max: maxHour,
           splitLine: { show: true },
-          // 添加安全处理，确保轴的范围有效
-          scale: true,
-          axisLabel: {
-            formatter: '{value}'
-          }
         },
         yAxis: {
-          type: "value", 
-          show: true,
-          name: "病人聚类",
+          type: "value", // 保持value类型以支持数值坐标
+          show: true, // 保持轴的基本结构
+          name: "病人聚类", // 轴名称
           nameLocation: "middle",
           nameGap: 20,
-          // 改进范围计算，避免无效值
-          min: function (value) {
-            return value.min !== undefined ? Math.floor(value.min - 1) : 0;
-          },
+          // 范围控制
+          min: 0,
           max: function (value) {
             return value.max !== undefined ? Math.ceil(value.max + 1) : 10;
           },
-          // 其他配置保持不变
           nameTextStyle: {
             fontSize: 13,
             fontWeight: 500,
             color: "#2d5bff",
           },
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: { show: false },
-          splitLine: { show: false },
+          // 隐藏轴线
+          axisLine: {
+            show: false,
+          },
+          // 隐藏刻度
+          axisTick: {
+            show: false,
+          },
+          // 隐藏标签
+          axisLabel: {
+            show: false,
+          },
+          // 隐藏分割线
+          splitLine: {
+            show: false,
+          },
         },
-        // yAxis: {
-        //   type: "category",
-        //   show: true,
-        //   data: patientIds,
-        //   name: "病人ID",
-        //   nameLocation: "middle",
-        //   nameGap: 50,
-        //   nameTextStyle: {
-        //     fontSize: 13,
-        //     fontWeight: 500,
-        //     color: "#2d5bff",
-        //   },
-        //   axisLine: {
-        //     lineStyle: {
-        //       color: "#2d5bff",
-        //     },
-        //   },
-        //   axisTick: {
-        //     show: true,
-        //   },
-        //   axisLabel: {
-        //     fontSize: 11,
-        //     color: "#2d5bff",
-        //   },
-        // },
         grid: {
           left: "5%",
           right: "5%",
@@ -314,33 +298,38 @@ export default {
         },
         dataZoom: [
           {
-            type: 'inside',
-            xAxisIndex: 0,
-            filterMode: 'filter',
+            type: "inside",
+            xAxisIndex: 0, // 只对x轴生效，不影响y轴
+            filterMode: "filter",
             start: 0,
             end: 100,
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             preventDefaultMouseMove: true,
             // 添加安全处理
-            rangeMode: ['value', 'value']
+            rangeMode: ["value", "value"],
+            // 确保只在x轴方向缩放
+            zoomLock: false,
+            // yAxisIndex: null, // <-- Remove this line
           },
           {
-            type: 'slider',
-            xAxisIndex: 0,
-            filterMode: 'filter',
+            type: "slider",
+            xAxisIndex: 0, // 只对x轴生效，不影响y轴
+            // yAxisIndex: null, // <-- Remove this line
+            filterMode: "filter",
             height: 20,
             bottom: 10,
             start: 0,
             end: 100,
-            handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7v-1.2h6.6V24.4z',
-            handleSize: '80%',
+            handleIcon:
+              "M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7v-1.2h6.6V24.4z",
+            handleSize: "80%",
             showDetail: false,
             // 添加安全处理
-            rangeMode: ['value', 'value'],
+            rangeMode: ["value", "value"],
             minSpan: 1,
-            maxSpan: 100
-          }
+            maxSpan: 100,
+          },
         ],
         // brush: {
         //   toolbox: ["rect", "polygon", "keep", "clear"],
@@ -360,45 +349,31 @@ export default {
 
       // 应用配置
       this.chartInstance.setOption(option);
-      // 记录当前选中的组
-      let currentSelectedGroup = null;
-      let currentZoomRange = {
-        start: 0,
-        end: 100
-      };
-      
-      // 使用 dataZoomEnd 事件替代 datazoom 事件，只在缩放操作结束时触发
-      this.chartInstance.on('dataZoomEnd', (params) => {
-        try {
-          // 获取当前的缩放范围，添加安全检查
-          if (params && typeof params.start !== 'undefined' && typeof params.end !== 'undefined') {
-            currentZoomRange.start = params.start;
-            currentZoomRange.end = params.end;
-            console.log('图表缩放操作结束:', currentZoomRange.start, currentZoomRange.end);
-            
-            // 延迟执行重绘，避免频繁重绘
-            if (this.zoomTimer) {
-              clearTimeout(this.zoomTimer);
-            }
-            
-            this.zoomTimer = setTimeout(() => {
-              try {
-                console.log('准备更新连线数据');
-                
-                // 不要尝试更新现有的markLine，而是完全重新绘制图表
-                this.refreshChart();
-                
-              } catch (error) {
-                console.error('缩放后更新图表出错:', error);
-              }
-            }, 300); // 300ms 延迟，避免频繁重绘
-          } else {
-            console.warn('缩放事件参数无效:', params);
+      // 监听 legend 选择变化，隐藏时清空 markLine
+      this.chartInstance.on("legendselectchanged", (params) => {
+        const selected = params.selected;
+        const newSeries = series.map((s) => {
+          if (!selected[s.name]) {
+            // 被隐藏时，清空 markLine
+            return {
+              ...s,
+              markLine: {
+                ...s.markLine,
+                data: [],
+              },
+            };
           }
-        } catch (error) {
-          console.error('处理缩放事件时出错:', error);
-        }
+          // 显示时恢复 markLine
+          return s;
+        });
+        this.chartInstance.setOption({
+          series: newSeries,
+        });
       });
+
+      //记录当前选中的组
+      let currentSelectedGroup = null;
+
       // 添加点击事件处理
       this.chartInstance.on("click", (params) => {
         if (
@@ -487,191 +462,117 @@ export default {
     },
 
     // 生成连接同一病人的所有点的标记线，在聚类点添加垂直线段
+    // 生成连接同一病人的所有点的标记线，在聚类点添加垂直线段
     generateMarkLines(data) {
-      console.log('===== generateMarkLines 方法被调用 =====');
-      if (!data || data.length <= 1) return [];
-      console.log('生成连线数据，数据点数量:', data.length);
+      if (data.length <= 1) return [];
 
-      try {
-        // 按时间排序
-        const sortedData = [...data].sort((a, b) => a.value[0] - b.value[0]);
+      // 按时间排序
+      const sortedData = [...data].sort((a, b) => a.value[0] - b.value[0]);
 
-        // 获取所有聚类时间点
-        const clusterTimes = this.clusterData.map((c) => c.hour);
-        console.log('聚类时间点:', clusterTimes);
+      // 获取所有聚类时间点
+      const clusterTimes = this.clusterData.map((c) => c.hour);
 
-        // 生成连线数据
-        const lines = [];
+      // 生成连线数据
+      const lines = [];
 
-        for (let i = 0; i < sortedData.length - 1; i++) {
-          const startPoint = sortedData[i];
-          const endPoint = sortedData[i + 1];
-          
-          // 更严格的数据验证
-          if (
-            !startPoint || !endPoint || 
-            !startPoint.value || !endPoint.value ||
-            !Array.isArray(startPoint.value) || !Array.isArray(endPoint.value) ||
-            startPoint.value.length < 2 || endPoint.value.length < 2 ||
-            isNaN(startPoint.value[0]) || isNaN(startPoint.value[1]) ||
-            isNaN(endPoint.value[0]) || isNaN(endPoint.value[1])
-          ) {
-            console.warn('跳过无效的数据点:', startPoint, endPoint);
-            continue;
-          }
-
-          // 确保坐标值是数字类型
-          const startCoord = [+startPoint.value[0], +startPoint.value[1]];
-          const endCoord = [+endPoint.value[0], +endPoint.value[1]];
-
-          const startTime = Math.round(startPoint.value[0]);
-          const endTime = Math.round(endPoint.value[0]);
-
-          // 检查这两个点之间是否有聚类时间点
-          const betweenClusterTimes = clusterTimes
-            .filter((time) => time > startTime && time < endTime)
-            .sort((a, b) => a - b);
-
-          if (betweenClusterTimes.length === 0) {
-            // 如果没有聚类时间点，直接连接
-            lines.push([
-              { coord: startCoord, lineStyle: { type: "solid", width: 2 } },
-              { coord: endCoord, lineStyle: { type: "solid", width: 2 } },
-            ]);
-          } else {
-            // 如果有聚类时间点，添加垂直过渡
-            let lastPoint = { ...startPoint, value: startCoord };
-
-            // 对每个中间的聚类时间点，创建两个点形成垂直线段
-            for (const clusterTime of betweenClusterTimes) {
-              // 获取该时间点对应的聚类
-              const cluster = this.clusterData.find(
-                (c) => c.hour === clusterTime
-              );
-              if (!cluster) {
-                console.warn('找不到时间点对应的聚类:', clusterTime);
-                continue;
-              }
-
-              // 找到患者在该聚类中的位置
-              const patientId = startPoint.patientId.toLowerCase();
-              const clusterIndex = cluster.cluster.findIndex((c) =>
-                c.includes(patientId)
-              );
-              if (clusterIndex === -1) {
-                console.warn('找不到患者在聚类中的位置:', patientId, clusterTime);
-                continue; // 防止找不到聚类
-              }
-
-              const patientIndex = cluster.cluster[clusterIndex].findIndex(
-                (id) => id === patientId
-              );
-              if (patientIndex === -1) {
-                console.warn('找不到患者在聚类组中的索引:', patientId, clusterIndex);
-                continue; // 防止找不到患者
-              }
-
-              // 计算Y坐标
-              const patientIds = this.patientEventData.map((item) => item.patientId);
-              const yCoord =
-                clusterIndex * (patientIds.length * 2) + patientIndex * 1.5;
-                
-              // 验证坐标有效性
-              if (isNaN(yCoord)) {
-                console.warn('计算出的Y坐标无效:', yCoord);
-                continue;
-              }
-              
-              // 添加到上一个点到聚类时间点的水平线段
-              lines.push([
-                {
-                  coord: [+lastPoint.value[0], +lastPoint.value[1]],
-                  lineStyle: { type: "solid", width: 2 },
-                },
-                {
-                  coord: [+clusterTime, +lastPoint.value[1]],
-                  lineStyle: { type: "solid", width: 2 },
-                },
-              ]);
-
-              // 添加垂直过渡线段
-              lines.push([
-                {
-                  coord: [+clusterTime, +lastPoint.value[1]],
-                  lineStyle: { type: "dashed", width: 1 },
-                },
-                {
-                  coord: [+clusterTime, +yCoord],
-                  lineStyle: { type: "dashed", width: 1 },
-                },
-              ]);
-
-              // 更新最后一个点
-              lastPoint = {
-                value: [+clusterTime, +yCoord],
-                patientId: startPoint.patientId,
-              };
-            }
-
-            // 添加最后一段线段到终点
-            lines.push([
-              { coord: [+lastPoint.value[0], +lastPoint.value[1]], lineStyle: { type: "solid", width: 2 } },
-              { coord: endCoord, lineStyle: { type: "solid", width: 2 } },
-            ]);
-          }
+      for (let i = 0; i < sortedData.length - 1; i++) {
+        const startPoint = sortedData[i];
+        const endPoint = sortedData[i + 1];
+        if (
+          !startPoint.value ||
+          !endPoint.value ||
+          !Array.isArray(startPoint.value) ||
+          !Array.isArray(endPoint.value) ||
+          startPoint.value.length < 2 ||
+          endPoint.value.length < 2
+        ) {
+          continue;
         }
 
-        // 最终验证所有线条数据
-        // 最终验证所有线条数据
-        const validLines = lines.filter(line => {
-          if (!Array.isArray(line) || line.length !== 2) {
-            console.warn('无效的线条数据格式:', line);
-            return false;
+        const startTime = Math.round(startPoint.realTime);
+        const endTime = Math.round(endPoint.realTime);
+
+        // 检查这两个点之间是否有聚类时间点
+        const betweenClusterTimes = clusterTimes
+          .filter((time) => time >= startTime && time <= endTime)
+          .sort((a, b) => a - b);
+
+        if (betweenClusterTimes.length === 0) {
+          // 如果没有聚类时间点，直接连接（使用正确格式）
+          lines.push([
+            { coord: startPoint.value, lineStyle: { type: "solid", width: 2 } },
+            { coord: endPoint.value, lineStyle: { type: "solid", width: 2 } },
+          ]);
+        } else {
+          // 如果有聚类时间点，添加垂直过渡
+          let lastPoint = startPoint;
+
+          // 对每个中间的聚类时间点，创建两个点形成垂直线段
+          for (const clusterTime of betweenClusterTimes) {
+            // 获取该时间点对应的聚类
+            const cluster = this.clusterData.find(
+              (c) => c.hour === clusterTime
+            );
+            if (!cluster) continue;
+
+            // 找到患者在该聚类中的位置
+            const patientId = startPoint.patientId.toLowerCase();
+            const clusterIndex = cluster.cluster.findIndex((c) =>
+              c.includes(patientId)
+            );
+            if (clusterIndex === -1) continue; // 防止找不到聚类
+
+            const patientIndex = cluster.cluster[clusterIndex].findIndex(
+              (id) => id === patientId
+            );
+            if (patientIndex === -1) continue; // 防止找不到患者
+
+            // 计算Y坐标
+            const patientIds = this.patientEventData.map(
+              (item) => item.patientId
+            );
+            const yCoord =
+              clusterIndex * (patientIds.length * 2) + patientIndex * 1.5;
+            // 添加到上一个点到聚类时间点的水平线段（粗实线）
+            lines.push([
+              {
+                coord: lastPoint.value,
+                lineStyle: { type: "solid", width: 2 },
+              },
+              {
+                coord: [clusterTime, lastPoint.value[1]],
+                lineStyle: { type: "solid", width: 2 },
+              },
+            ]);
+
+            // 添加垂直过渡线段（虚线）
+            lines.push([
+              {
+                coord: [clusterTime, lastPoint.value[1]],
+                lineStyle: { type: "dashed", width: 1 },
+              },
+              {
+                coord: [clusterTime, yCoord],
+                lineStyle: { type: "dashed", width: 1 },
+              },
+            ]);
+
+            // 更新最后一个点
+            lastPoint = {
+              value: [clusterTime, yCoord],
+              patientId: startPoint.patientId,
+            };
           }
-          const [start, end] = line;
-          const isValid = (
-            start && end && 
-            start.coord && end.coord && 
-            Array.isArray(start.coord) && Array.isArray(end.coord) &&
-            start.coord.length === 2 && end.coord.length === 2 &&
-            !isNaN(start.coord[0]) && !isNaN(start.coord[1]) &&
-            !isNaN(end.coord[0]) && !isNaN(end.coord[1]) &&
-            isFinite(start.coord[0]) && isFinite(start.coord[1]) &&
-            isFinite(end.coord[0]) && isFinite(end.coord[1])
-          );
-          if (!isValid) {
-            console.warn('无效的线条坐标:', start, end);
-          }
-          return isValid;
-        });
-        
-        // 检查坐标范围，防止极端值导致缩放问题
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        
-        validLines.forEach(line => {
-          const [start, end] = line;
-          minX = Math.min(minX, start.coord[0], end.coord[0]);
-          maxX = Math.max(maxX, start.coord[0], end.coord[0]);
-          minY = Math.min(minY, start.coord[1], end.coord[1]);
-          maxY = Math.max(maxY, start.coord[1], end.coord[1]);
-        });
-        
-        // 如果范围异常，记录警告并返回空数组
-        if (!isFinite(minX) || !isFinite(maxX) || !isFinite(minY) || !isFinite(maxY) ||
-            maxX - minX <= 0 || maxY - minY <= 0) {
-          console.warn('连线坐标范围异常:', { minX, maxX, minY, maxY });
-          return [];
+
+          // 添加最后一段线段到终点（粗实线）
+          lines.push([
+            { coord: lastPoint.value, lineStyle: { type: "solid", width: 2 } },
+            { coord: endPoint.value, lineStyle: { type: "solid", width: 2 } },
+          ]);
         }
-        
-        console.log(`生成连线完成，有效线条数量: ${validLines.length}/${lines.length}`);
-        console.log('线条示例:', validLines.slice(0, 2)); // 只显示前两个线条作为示例
-        console.log('坐标范围:', { minX, maxX, minY, maxY });
-        return validLines;
-        // return validLines;
-      } catch (error) {
-        console.error('生成连线时发生错误:', error);
-        return []; // 出错时返回空数组，避免图表崩溃
       }
+
+      return lines;
     },
     generateColor(index, total) {
       // 基准颜色 #2d5bff
@@ -763,69 +664,50 @@ export default {
     },
 
     refreshChart() {
-      console.log('开始刷新图表');
-      // 保存当前的缩放范围和选中状态
-      let savedZoomRange = null;
-      // let savedSelectedGroup = null;
-      
+      // 销毁当前图表实例
       if (this.chartInstance) {
-        try {
-          // 获取当前图表的选项
-          const option = this.chartInstance.getOption();
-          
-          // 保存缩放范围
-          if (option.dataZoom && option.dataZoom.length > 0) {
-            savedZoomRange = {
-              start: option.dataZoom[0].start,
-              end: option.dataZoom[0].end
-            };
-            console.log('保存当前缩放范围:', savedZoomRange);
-          }
-          
-          // 销毁当前图表实例
-          this.chartInstance.dispose();
-        } catch (error) {
-          console.error('保存图表状态时出错:', error);
-        }
+        this.chartInstance.dispose();
       }
-      
       // 重新初始化图表
       this.$nextTick(() => {
-        console.log('重新初始化图表，将重新生成连线');
         this.initChart();
-        
-        // 如果有保存的缩放范围，恢复它
-        if (savedZoomRange && this.chartInstance) {
-          setTimeout(() => {
-            console.log('恢复缩放范围:', savedZoomRange);
-            this.chartInstance.setOption({
-              dataZoom: [
-                {
-                  start: savedZoomRange.start,
-                  end: savedZoomRange.end
-                },
-                {
-                  start: savedZoomRange.start,
-                  end: savedZoomRange.end
-                }
-              ]
-            });
-          }, 200); // 增加延迟，确保图表已完全初始化
-        }
       });
-    }
+    },
+
+    // 修复 resizeChart 方法
+    resizeChart() {
+      if (!this.chartInstance) return;
+
+      try {
+        // 创建一个延迟，确保DOM已完全调整大小
+        if (this.resizeTimer) {
+          clearTimeout(this.resizeTimer);
+        }
+
+        this.resizeTimer = setTimeout(() => {
+          // 先尝试普通的 resize
+          try {
+            this.chartInstance.resize();
+          } catch (error) {
+            console.warn("图表调整大小时出错，尝试重新初始化:", error);
+            // 如果 resize 失败，尝试完全重新创建图表
+            this.chartInstance.dispose();
+            this.chartInstance = null;
+            this.$nextTick(() => {
+              this.initChart();
+            });
+          }
+        }, 100); // 添加200ms延迟，避免频繁调整
+      } catch (error) {
+        console.error("resizeChart 错误:", error);
+      }
+    },
   },
+
   // 确保在组件销毁时清理资源
   beforeUnmount() {
     // 组件销毁前移除事件监听
     window.removeEventListener("resize", this.resizeChart);
-    // 清理计时器
-    if (this.resizeTimer) {
-      clearTimeout(this.resizeTimer);
-    }
-    if (this.zoomTimer) {
-      clearTimeout(this.zoomTimer);
-    }
     // 销毁图表实例
     if (this.chartInstance) {
       this.chartInstance.dispose();

@@ -114,6 +114,43 @@ def add_rule():
         "rule_id": new_rule.id
     }), 201
 
+@rule_bp.route('/update_rule/<int:rule_id>', methods=['PUT'])
+@jwt_required()
+def update_rule(rule_id):
+    """编辑现有规则"""
+    # 查找要编辑的规则
+    rule = Rule.query.get(rule_id)
+    
+    if not rule:
+        return jsonify({"error": "规则不存在"}), 404
+    
+    data = request.get_json()
+    
+    # 更新规则字段
+    if 'name' in data:
+        rule.name = data['name']
+    if 'weight' in data:
+        rule.weight = data['weight']
+    if 'category' in data:
+        rule.category = data['category']
+    if 'event_id1' in data:
+        rule.event_id1 = data['event_id1']
+    if 'event_id2' in data:
+        rule.event_id2 = data['event_id2']
+    if 'precondition' in data:
+        rule.precondition = data['precondition']
+    if 'time_delta' in data:
+        rule.time_delta = data['time_delta']
+    
+    # 保存更新
+    db.session.commit()
+    
+    return jsonify({
+        "message": "规则更新成功",
+        "rule_id": rule.id
+    }), 200
+
+
 @rule_bp.route('/get_rules_by_property', methods=['GET'])
 @jwt_required()
 def get_rules_by_property():

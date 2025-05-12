@@ -103,3 +103,102 @@ def get_event_ids_by_category():
 
     return jsonify(result), 200
 
+
+@event_bp.route('/add_patient_event', methods=['POST'])
+@jwt_required()
+def add_patient_event():
+    """为病人添加一条异常事件记录"""
+    try:
+        data = request.get_json()
+        
+        # 验证必要参数
+        if not data or 'patient_id' not in data or 'event_id' not in data:
+            return jsonify({"error": "缺少必要参数，需要patient_id和event_id"}), 400
+        
+        patient_id = data.get('patient_id')
+        event_id = data.get('event_id')
+        timestamp = data.get('timestamp')  # 可选参数
+        value = data.get('value')  # 可选参数
+        
+        # 检查事件是否存在
+        event = Event.query.get(event_id)
+        if not event:
+            return jsonify({"error": f"事件ID {event_id} 不存在"}), 404
+        
+        # 创建新的PatientEvent记录
+        new_patient_event = PatientEvent(
+            patient_id=patient_id,
+            event_id=event_id,
+            timestamp=timestamp,
+            value=value
+        )
+        
+        # 添加到数据库并提交
+        db.session.add(new_patient_event)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "事件记录添加成功",
+            "patient_event_id": new_patient_event.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"添加事件记录失败: {str(e)}"}), 500
+
+# 添加批量添加接口
+@event_bp.route('/add_patient_events_batch', methods=['POST'])
+@jwt_required()
+def add_patient_events_batch():
+    """批量为多个病人添加异常事件记录"""
+    try:
+        data = request.get_json()
+        
+        # 验证必要参数
+        if not data or 'events' not in data or not isinstance(data['events'], list):
+            return jsonify({"error": "缺少必要参数，需要events数组"}), 400
+        
+        events = data['events']
+        added_count = 0
+        errors = []
+        
+        for event_data in events:
+            # 验证每条记录的必要参数
+            if 'patient_id' not in event_data or 'event_id' not in event_data:
+                errors.append(f"记录缺少必要参数: {event_data}")
+                continue
+            
+            # 检查事件是否存在
+            event = Event.query.get(event_data['event_id'])
+            if not event:
+                errors.append(f"事件ID {event_data['event_id']} 不存在")
+                continue
+            
+            # 创建新的PatientEvent记录
+            new_patient_event = PatientEvent(
+                patient_id=event_data['patient_id'],
+                event_id=event_data['event_id'],
+                timestamp=event_data.get('timestamp'),
+                value=event_data.get('value')
+            )
+            
+            # 添加到数据库
+            db.session.add(new_patient_event)
+            added_count += 1
+        
+        # 提交所有更改
+        db.session.commit()
+        
+        result = {
+            "message": f"成功添加 {added_count} 条事件记录",
+            "added_count": added_count
+        }
+        
+        if errors:
+            result["errors"] = errors
+        
+        return jsonify(result), 201 if added_count > 0 else 400
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"批量添加事件记录失败: {str(e)}"}), 500

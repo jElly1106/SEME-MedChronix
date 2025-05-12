@@ -100,8 +100,8 @@ export default {
 
         const formData = new FormData();
         formData.append("image", this.selectedFile);
-
-        fetch("http://127.0.0.1:5000/api/llm/image-analysis", {
+        //127.0.0.1:5000
+        fetch("http://47.97.48.128/api/llm/image-analysis", {
           method: "POST",
           body: formData,
         })
@@ -146,8 +146,8 @@ export default {
           sender: "bot",
           type: "text",
         });
-
-        fetch("http://127.0.0.1:5000/api/llm/chat", {
+        //127.0.0.1:5000
+        fetch("http://47.97.48.128/api/llm/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

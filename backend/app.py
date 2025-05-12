@@ -8,6 +8,7 @@ from api.disease import disease_bp
 from api.patient import patient_bp
 from api.LLM import llm_bp
 from api.certification import certification_bp
+from api.ct_scan import ct_scan_bp
 from api.event import event_bp
 from api.predict import predict_bp
 from api.rule import rule_bp

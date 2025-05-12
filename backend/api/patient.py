@@ -28,7 +28,7 @@ def get_patience_event():
     else:
         return jsonify({'error': 'Event not found'}), 404
 
-
+    
 @patient_bp.route('/all', methods=['GET'])
 #@jwt_required()
 def get_all_patients():
@@ -52,8 +52,104 @@ def delete_patient(patient_id):
     db.session.commit()
     return jsonify({"message": "Patient deleted successfully"}), 200
 
+@patient_bp.route('/update/<int:patient_id>', methods=['PUT'])
+@jwt_required()
+def update_patient(patient_id):
+    """根据 id 修改病人信息"""
+    data = request.get_json()
+    patient = Patient.query.get_or_404(patient_id)
+
+    # 更新字段（你也可以写得更智能一些）
+    patient.name = data.get('name', patient.name)
+    patient.gender = data.get('gender', patient.gender)
+    patient.age = data.get('age', patient.age)
+    patient.heart_history = data.get('heart_history', patient.heart_history)
+    patient.diabete_history = data.get('diabete_history', patient.diabete_history)
+    patient.EH_history = data.get('EH_history', patient.EH_history)
+    patient.other_history = data.get('other_history', patient.other_history)
+    patient.status = data.get('status', patient.status)
+
+    if 'in_icu' in data:
+        patient.in_icu = datetime.strptime(data['in_icu'], "%Y-%m-%d %H:%M:%S")
+    if 'out_icu' in data:
+        patient.out_icu = datetime.strptime(data['out_icu'], "%Y-%m-%d %H:%M:%S")
+
+    db.session.commit()
+    return jsonify({"message": "Patient updated successfully"}), 200
+
+@patient_bp.route('/add', methods=['POST'])
+@jwt_required()
+def add_patient():
+    """添加一个新患者"""
+    data = request.get_json()
+
+    # 获取对应的疾病（假设传的是疾病名称）
+    disease = Disease.query.filter_by(name=data.get('desease')).first()
+    if not disease:
+        return jsonify({'error': 'Disease not found'}), 404
+
+    # 构造 Patient 对象
+    new_patient = Patient(
+        name=data.get('name'),
+        gender=data.get('gender'),
+        age=data.get('age'),
+        heart_history=data.get('heart_history'),
+        diabete_history=data.get('diabete_history'),
+        EH_history=data.get('EH_history'),
+        other_history=data.get('other_history'),
+        status=data.get('status'),
+        in_icu=datetime.strptime(data['in_icu'], "%Y-%m-%d %H:%M:%S") if data.get('in_icu') else None,
+        out_icu=datetime.strptime(data['out_icu'], "%Y-%m-%d %H:%M:%S") if data.get('out_icu') else None,
+        disease_id=disease.id
+    )
+
+    db.session.add(new_patient)
+    db.session.commit()
+
+    return jsonify({'message': 'Patient added successfully', 'patient_id': new_patient.id}), 201
+
+
+
 #2025/3/19 feat
 
+
+@patient_bp.route('/gender_stats', methods=['GET'])
+@jwt_required()
+def gender_stats():
+    gender_counts = db.session.query(
+        Patient.gender,
+        func.count(Patient.id).label('count')
+    ).group_by(Patient.gender).all()
+
+    result = {gender: count for gender, count in gender_counts if gender is not None}
+    return jsonify(result), 200
+
+@patient_bp.route('/age_stats', methods=['GET'])
+@jwt_required()
+def age_distribution():
+    """统计病人表中年龄（按年龄段统计人数）"""
+    age_groups = {
+        "0-20": (0, 20),
+        "21-40": (21, 40),
+        "41-60": (41, 60),
+        "60+": (61, None)  # 60+ 无上限
+    }
+
+    age_stats = {}
+
+    for group, (min_age, max_age) in age_groups.items():
+        if max_age:  # 针对 0-60 岁的区间
+            count = db.session.query(func.count(Patient.id)).filter(
+                Patient.age.between(min_age, max_age)
+            ).scalar()
+        else:  # 处理 60+ 年龄段
+            count = db.session.query(func.count(Patient.id)).filter(
+                Patient.age >= min_age
+            ).scalar()
+
+        age_stats[group] = count
+
+    return jsonify(age_stats), 200
 
 
 @patient_bp.route('/details', methods=['GET'])
@@ -501,6 +597,84 @@ def get_patient_data_table(patient_id):
             "data": None
         }), ResponseCode.INTERNAL_SERVER_ERROR
 
+@patient_bp.route('/event_probabilities', methods=['POST'])
+# @jwt_required()
+def get_event_probabilities():
+    """
+    输入病人 ID，返回模型预测的各种异常事件的概率
+    """
+    data = request.get_json()
+    patient_id = data.get("patient_id")
+
+    if not patient_id:
+        return jsonify({
+            "code": ResponseCode.PARAMS_ERROR,
+            "message": "Missing patient_id",
+            "data": None
+        }), ResponseCode.BAD_REQUEST
+
+    predicted_events = (
+        db.session.query(EventPrediction)
+        .filter_by(patient_id=patient_id)
+        .order_by(EventPrediction.time.asc())
+        .all()
+    )
+    # 将事件转换为字典格式
+    # [
+    #     // 时间点1 - 已发生的数据
+    #     {
+    #       time: "2023-01-01",
+    #       events: [
+    #         { type: "发热", intensity: 16.5 },
+    #         { type: "咳嗽", intensity: 8.2 },
+    #         { type: "头痛", intensity: 5.1 },
+    #         { type: "呼吸困难", intensity: 3.0 },
+    #         { type: "乏力", intensity: 4.5 },
+    #       ],
+    #       isHistorical: true,
+    #     },
+    #     // 时间点2
+    #     {
+    #       time: "2023-01-02",
+    #       events: [
+    #         { type: "发热", intensity: 15.0 },
+    #         { type: "咳嗽", intensity: 9.5 },
+    #         { type: "头痛", intensity: 4.8 },
+    #         { type: "呼吸困难", intensity: 4.2 },
+    #         { type: "乏力", intensity: 6.0 },
+    #       ],
+    #       isHistorical: False,
+    #     }
+    # ]
+    probabilities = []
+    for e in predicted_events:
+        event_time = e.time.strftime('%Y-%m-%d %H:%M:%S') if e.time else "unknown_time"
+        event_pred = {
+            "type": e.event.name if e.event else "未知事件",
+            "probability": e.probability
+        }
+        last_observation_time = (
+            db.session.query(func.max(PatientEvent.time))
+            .filter_by(patient_id=patient_id)
+            .scalar()
+        )
+        # 查找是否已经有相同时间的事件
+        existing_event = next((item for item in probabilities if item['time'] == event_time), None)
+        if existing_event:
+            # 修复：将单个事件对象添加到events列表中，而不是extend
+            existing_event['events'].append(event_pred)
+        else:
+            probabilities.append({
+                'time': event_time,
+                'events': [event_pred],
+                'isHistorical': True if e.time <= last_observation_time else False  # 判断事件是否已经发生
+            })
+
+    return jsonify({
+        "code": ResponseCode.OK,
+        "message": "Success",
+        "data": probabilities
+    }), ResponseCode.OK 
 
 
 @patient_bp.route('/top_predictions', methods=['GET'])
