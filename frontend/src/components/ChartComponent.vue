@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import * as echarts from "echarts"; // 取消注释，导入ECharts
+import * as echarts from "echarts";
 
 export default {
   name: "ChartComponent",
@@ -47,35 +47,21 @@ export default {
     },
   },
   mounted() {
-    // try {
-    //   // Wait for DOM to be ready
-    //   this.$nextTick(() => {
-    //     console.log("DOM is ready");
-    //   });
-    // } catch (error) {
-    //   console.error("Error in mounted hook:", error);
-    // }
     this.initChart();
   },
   methods: {
     initChart() {
-      // 初始化ECharts实例
       this.chartInstance = echarts.init(this.$refs.chart);
       console.log("卡片内部数据", this.patientEventData);
       console.log("聚类数据", this.clusterData);
 
-      // 使用传入的数据，如果没有数据则不渲染图表
       if (this.patientEventData.length === 0 || this.clusterData.length === 0) {
-        // 显示无数据提示
         this.chartInstance.setOption({
           title: {
             text: "暂无数据",
             left: "center",
             top: "center",
-            textStyle: {
-              color: "#999",
-              fontSize: 16,
-            },
+            textStyle: { color: "#999", fontSize: 16 },
           },
         });
         return;
@@ -83,133 +69,116 @@ export default {
 
       const chartData = this.patientEventData;
       const clusterData = this.clusterData;
-      // 准备数据
       const patientIds = chartData.map((item) => item.patientId);
-      const series = chartData.map((patient, index) => {
-        // 为每个病人生成不同的颜色，基于基色调的变化
-        const color = this.generateColor(index, chartData.length);
 
-        // 准备该病人的所有事件数据点
-        const data = [
-          // 添加起始点（0时刻）
-          {
-            value: [0, patientIds.indexOf(patient.patientId) * 1.5],
-            itemStyle: { color: color },
-            name: "初始状态",
-            value_display: 0,
-            patientId: patient.patientId,
-            realTime: 0,
-          },
-          ...patient.events.map((event) => {
-            // 计算同一小时内的事件偏移
-            const sameHourEvents = patient.events.filter(
-              (e) => e.hour === event.hour
-            );
-            const hourOffset =
-              sameHourEvents.length > 1
-                ? (sameHourEvents.indexOf(event) -
-                    (sameHourEvents.length - 1) / 2) *
-                  0.2
-                : 0;
+      // 聚合同一时间的事件
+      const aggregatedData = this.aggregateEventsByTime(chartData);
 
-            // 根据事件发生的时间和聚类情况计算Y坐标
-            // Y = clusterIndex*patientCount + clustergroup中对应cluster病人的patientId对应的index
-            const cluster = clusterData.reduce((closest, current) => {
-              return Math.abs(current.hour - event.hour) <
-                Math.abs(closest.hour - event.hour)
-                ? current
-                : closest;
-            });
-            const clusterIndex = cluster.cluster.findIndex((c) =>
-              c.includes(patient.patientId.toLowerCase())
-            );
-            const patientIndex = cluster.cluster[clusterIndex].findIndex(
-              (id) => id === patient.patientId.toLowerCase()
-            );
-            const yCoord =
-              clusterIndex * (patientIds.length * 2) + patientIndex * 1.5;
+      // // 生成聚类背景区域 - 修正版本
+      // const clusterAreas = this.generateClusterAreas(clusterData, patientIds);
 
-            return {
-              value: [event.hour + hourOffset, yCoord],
-              itemStyle: { color: color },
-              name: event.name,
-              value_display: event.value,
-              patientId: patient.patientId,
-              realTime: event.hour,
-            };
-          }),
-        ];
+      const series = aggregatedData.map((patient, index) => {
+        const color = this.generateDistinctColor(index, aggregatedData.length);
+
+        const data = this.generatePatientDataPoints(
+          patient,
+          clusterData,
+          patientIds
+        );
 
         return {
           name: patient.patientId,
-          type: "scatter",
-          symbolSize: 12,
+          type: "line",
+          symbolSize: 8,
           data: data,
-          itemStyle: { color: color },
+          itemStyle: {
+            color: color,
+            borderColor: "#fff",
+            borderWidth: 2,
+          },
+          lineStyle: {
+            color: color,
+            width: 3,
+            type: "solid",
+            shadowColor: color,
+            shadowBlur: 3,
+            shadowOffsetY: 1,
+          },
+          step: false,
+          smooth: 0.3,
           emphasis: {
+            focus: "series",
             itemStyle: {
-              // 鼠标悬停时保持原样式，只是稍微增大点的大小
               color: color,
               borderColor: "#fff",
-              borderWidth: 2,
-              shadowBlur: 5,
-              shadowColor: "rgba(0, 0, 0, 0.3)",
+              borderWidth: 3,
+              shadowBlur: 10,
+              shadowColor: "rgba(0, 0, 0, 0.4)",
             },
-            scale: true, // 允许缩放效果
-            focus: "none", // 只关注当前数据项
-          },
-          // 添加连线
-          markLine: {
-            silent: true, // 使线条不响应鼠标事件
-            tooltip: { show: false }, // 明确禁用线条的tooltip
-            data: this.generateMarkLines(data),
-            lineStyle: { color: color, width: 2 },
-            symbol: ["emptyCircle", "emptyCircle"],
+            lineStyle: {
+              width: 6,
+              shadowBlur: 10,
+              shadowColor: color,
+            },
           },
         };
       });
-
+      // 添加聚类背景系列
+      const clusterBackgroundSeries = this.generateClusterBackgroundSeries(
+        clusterData,
+        patientIds
+      );
       const maxHour =
-        chartData.reduce((max, patient) => {
-          const maxHourForPatient = Math.max(
-            ...patient.events.map((event) => event.hour)
-          );
-          return Math.max(max, maxHourForPatient);
-        }, 0) + 1;
-      // 配置图表选项
+        Math.max(
+          ...chartData.flatMap((patient) =>
+            patient.events.map((event) => event.hour)
+          )
+        ) + 1;
+
       const option = {
         tooltip: {
-          trigger: "item", // 保持为item，只在数据点上触发
-          formatter: function (params) {
-            // 只有当params.componentType为'series'且params.seriesType为'scatter'时才显示tooltip
-            if (
-              params.componentType === "series" &&
-              params.seriesType === "scatter"
-            ) {
+          trigger: "item",
+          formatter: (params) => {
+            if (params.componentType === "series" && params.data?.events) {
+              const events = params.data.events;
+              const eventsHtml = events
+                .map(
+                  (event) =>
+                    `<p style="margin: 2px 0;">• ${
+                      event.name || "异常事件"
+                    }: <span style="color: #2d5bff; font-weight: bold;">${
+                      event.value
+                    }</span></p>`
+                )
+                .join("");
+
               return `
-                <div>
-                  <p><strong>病人ID:</strong> ${
-                    params.data?.patientId || "未知"
+                <div style="max-width: 350px; font-family: Arial, sans-serif;">
+                  <p style="margin: 0 0 8px 0;"><strong style="color: #333;">病人ID:</strong> <span style="color: ${
+                    params.color
+                  }; font-weight: bold;">${params.data.patientId}</span></p>
+                  <p style="margin: 0 0 8px 0;"><strong style="color: #333;">时间:</strong> ${Math.round(
+                    params.data.realTime
+                  )}时</p>
+                  <p style="margin: 0 0 8px 0;"><strong style="color: #333;">事件数量:</strong> ${
+                    events.length
                   }</p>
-                  <p><strong>异常事件:</strong> ${
-                    params.data?.name || "未知"
-                  }</p>
-                  <p><strong>异常值:</strong> ${
-                    params.data?.value_display || "未知"
-                  }</p>
-                  <p><strong>发生时间:</strong> ${
-                    Math.round(params.data?.realTime) || "未知"
-                  }时</p>
+                  <div style="max-height: 200px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 8px;">
+                    <strong style="color: #333;">事件详情:</strong>
+                    ${eventsHtml}
+                  </div>
                 </div>
               `;
             }
-            return ""; // 对于非散点的元素（如线），返回空字符串不显示tooltip
+            return "";
           },
-          enterable: true, // 允许鼠标进入tooltip
-          confine: true, // 将tooltip限制在图表区域内
-          position: function (pos) {
-            // 自定义tooltip位置，避免遮挡数据点
-            return [pos[0] + 10, pos[1] - 10]; // 向右上方偏移
+          enterable: true,
+          confine: true,
+          backgroundColor: "rgba(255, 255, 255, 0.95)",
+          borderColor: "#ddd",
+          borderWidth: 1,
+          textStyle: {
+            color: "#333",
           },
         },
         legend: {
@@ -218,33 +187,44 @@ export default {
           top: 20,
           orient: "horizontal",
           selectedMode: true,
-          data: patientIds,
+          data: patientIds.map((id, index) => ({
+            name: id,
+            icon: "circle",
+            textStyle: {
+              color: this.generateDistinctColor(index, patientIds.length),
+            },
+          })),
           textStyle: {
             color: "#333",
-            fontSize: 9,
-            fontWeight: 500,
-            fontFamily: "'PingFang SC', 'Microsoft YaHei', sans-serif",
-          },
-          itemWidth: 20,
-          itemHeight: 15,
-          itemGap: 10,
-          padding: [5, 10],
-          borderRadius: 4,
-          backgroundColor: "rgba(255, 255, 255, 0.9)",
-          shadowColor: "rgba(0, 0, 0, 0.1)",
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowOffsetY: 0,
-          itemStyle: {
-            borderWidth: 0,
+            fontSize: 11,
+            fontWeight: 600,
           },
           formatter: (name) => `病人 ${name}`,
+          itemWidth: 25,
+          itemHeight: 14,
         },
         toolbox: {
+          feature: {
+            restore: {
+              title: "还原视图",
+              icon: "M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z",
+            },
+            dataZoom: {
+              title: {
+                zoom: "区域缩放",
+                back: "还原缩放",
+              },
+            },
+          },
           right: 20,
           top: 20,
-          feature: {
-            restore: { title: "还原" },
+          iconStyle: {
+            borderColor: "#2d5bff",
+          },
+          emphasis: {
+            iconStyle: {
+              borderColor: "#ff6b6b",
+            },
           },
         },
         xAxis: {
@@ -254,171 +234,565 @@ export default {
           nameGap: 30,
           min: 0,
           max: maxHour,
-          splitLine: { show: true },
+          splitLine: {
+            show: true,
+            lineStyle: {
+              type: "dashed",
+              opacity: 0.5,
+              color: "#d0d0d0",
+            },
+          },
+          axisLabel: {
+            formatter: "{value}h",
+          },
         },
         yAxis: {
-          type: "value", // 保持value类型以支持数值坐标
-          show: true, // 保持轴的基本结构
-          name: "病人聚类", // 轴名称
+          type: "value",
+          name: "病人聚类轨迹",
           nameLocation: "middle",
-          nameGap: 20,
-          // 范围控制
-          min: 0,
+          nameGap: 40,
+          min: -2,
           max: function (value) {
-            return value.max !== undefined ? Math.ceil(value.max + 1) : 10;
+            return Math.ceil(value.max + 4);
           },
-          nameTextStyle: {
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#2d5bff",
-          },
-          // 隐藏轴线
-          axisLine: {
-            show: false,
-          },
-          // 隐藏刻度
-          axisTick: {
-            show: false,
-          },
-          // 隐藏标签
-          axisLabel: {
-            show: false,
-          },
-          // 隐藏分割线
-          splitLine: {
-            show: false,
-          },
+          splitLine: { show: false },
+          axisLabel: { show: false },
+          axisTick: { show: false },
+          axisLine: { show: false },
         },
         grid: {
-          left: "5%",
+          left: "8%",
           right: "5%",
-          bottom: "10%",
-          top: "15%",
+          bottom: "15%",
+          top: "18%",
           containLabel: true,
         },
         dataZoom: [
           {
             type: "inside",
-            xAxisIndex: 0, // 只对x轴生效，不影响y轴
-            filterMode: "filter",
+            xAxisIndex: 0,
             start: 0,
             end: 100,
             zoomOnMouseWheel: true,
             moveOnMouseMove: true,
             preventDefaultMouseMove: true,
-            // 添加安全处理
-            rangeMode: ["value", "value"],
-            // 确保只在x轴方向缩放
-            zoomLock: false,
-            // yAxisIndex: null, // <-- Remove this line
+            minSpan: 5,
+            maxSpan: 100,
+            zoomSensitivity: 0.6,
+            moveSensitivity: 1.0,
           },
           {
             type: "slider",
-            xAxisIndex: 0, // 只对x轴生效，不影响y轴
-            // yAxisIndex: null, // <-- Remove this line
-            filterMode: "filter",
-            height: 20,
-            bottom: 10,
+            xAxisIndex: 0,
             start: 0,
             end: 100,
+            height: 18,
+            bottom: 25,
+            backgroundColor: "rgba(45, 91, 255, 0.1)",
+            fillerColor: "rgba(45, 91, 255, 0.3)",
+            borderColor: "rgba(45, 91, 255, 0.4)",
+            borderRadius: 6, // 添加圆角
+            handleStyle: {
+              color: "#2d5bff",
+              borderColor: "#fff",
+              borderWidth: 2,
+              shadowBlur: 3,
+              shadowColor: "rgba(0, 0, 0, 0.3)",
+              borderRadius: 8, // 圆角把手
+            },
             handleIcon:
-              "M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7v-1.2h6.6V24.4z",
-            handleSize: "80%",
-            showDetail: false,
-            // 添加安全处理
-            rangeMode: ["value", "value"],
-            minSpan: 1,
-            maxSpan: 100,
+              "M3,0 L7,0 C8.1,0 9,0.9 9,2 L9,14 C9,15.1 8.1,16 7,16 L3,16 C1.9,16 1,15.1 1,14 L1,2 C1,0.9 1.9,0 3,0 Z",
+            handleSize: "80%", // 调整把手大小
+            labelFormatter: function (value) {
+              return Math.round(value) + "h";
+            },
+            showDetail: true,
+            showDataShadow: true,
+            realtime: true,
+            filterMode: "filter",
+          },
+          {
+            type: "inside",
+            yAxisIndex: 0,
+            start: 0,
+            end: 100,
+            zoomOnMouseWheel: false,
+            moveOnMouseMove: false,
+            orient: "vertical",
           },
         ],
-        // brush: {
-        //   toolbox: ["rect", "polygon", "keep", "clear"],
-        //   throttleType: "debounce",
-        //   throttleDelay: 300,
-        // },
-        // 添加事件处理
-        graphic: [],
-        series: series.map((s) => ({
-          ...s,
-          itemStyle: {
-            ...s.itemStyle,
-            opacity: 1, // 添加默认透明度
-          },
-        })),
+        // 修正的聚类背景区域
+        // graphic: clusterAreas,
+        // series: series,
+        series: [...clusterBackgroundSeries, ...series], // 先添加背景系列，再添加数据系列
       };
 
-      // 应用配置
       this.chartInstance.setOption(option);
-      // 监听 legend 选择变化，隐藏时清空 markLine
-      this.chartInstance.on("legendselectchanged", (params) => {
-        const selected = params.selected;
-        const newSeries = series.map((s) => {
-          if (!selected[s.name]) {
-            // 被隐藏时，清空 markLine
-            return {
-              ...s,
-              markLine: {
-                ...s.markLine,
-                data: [],
-              },
-            };
-          }
-          // 显示时恢复 markLine
-          return s;
-        });
-        this.chartInstance.setOption({
-          series: newSeries,
+      this.setupClusterInteraction(series, clusterData, patientIds);
+      this.setupAdvancedInteractions();
+      window.addEventListener("resize", this.resizeChart);
+    },
+
+    generateDistinctColor(index) {
+      // 使用HSL色彩模式生成高对比度的颜色
+      const distinctColors = [
+        "#E53E3E", // 红色
+        "#3182CE", // 蓝色
+        "#38A169", // 绿色
+        "#D69E2E", // 黄色
+        "#805AD5", // 紫色
+        "#DD6B20", // 橙色
+        "#319795", // 青色
+        "#E53E3E", // 粉色
+        "#2D3748", // 深灰
+        "#0BC5EA", // 天蓝
+        "#F56565", // 浅红
+        "#48BB78", // 浅绿
+        "#ED8936", // 浅橙
+        "#9F7AEA", // 浅紫
+        "#4FD1C7", // 浅青
+      ];
+
+      if (index < distinctColors.length) {
+        return distinctColors[index];
+      }
+
+      // 如果超出预定义颜色，动态生成
+      const hue = (index * 137.508) % 360; // 黄金角度分布
+      const saturation = 70 + (index % 3) * 10; // 70-90%
+      const lightness = 40 + (index % 4) * 10; // 40-70%
+
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    },
+
+    // 优化聚类背景颜色，增加更多区分度
+    generateClusterBackgroundColor(groupIndex) {
+      const backgroundColors = [
+        "rgba(229, 62, 62, 0.3)", // 红色系 - 更鲜明
+        "rgba(49, 130, 206, 0.3)", // 蓝色系
+        "rgba(56, 161, 105, 0.3)", // 绿色系
+        "rgba(214, 158, 46, 0.3)", // 黄色系
+        "rgba(128, 90, 213, 0.3)", // 紫色系
+        "rgba(221, 107, 32, 0.3)", // 橙色系
+        "rgba(49, 151, 149, 0.3)", // 青色系
+        "rgba(236, 72, 153, 0.3)", // 粉色系
+        "rgba(139, 69, 19, 0.3)", // 棕色系
+        "rgba(75, 85, 99, 0.3)", // 灰色系
+      ];
+      return backgroundColors[groupIndex % backgroundColors.length];
+    },
+
+    // 设置高级交互功能
+    setupAdvancedInteractions() {
+      this.chartInstance.on("brushSelected", (params) => {
+        console.log("刷选区域:", params);
+      });
+
+      this.chartInstance.on("dataZoom", (params) => {
+        console.log("缩放事件:", params);
+      });
+
+      this.chartInstance.on("dblclick", () => {
+        this.chartInstance.dispatchAction({
+          type: "dataZoom",
+          start: 0,
+          end: 100,
         });
       });
 
-      //记录当前选中的组
+      document.addEventListener("keydown", this.handleKeydown);
+    },
+
+    handleKeydown(event) {
+      if (!this.chartInstance) return;
+
+      const chartContainer = this.$refs.chart;
+      if (!chartContainer || !chartContainer.contains(document.activeElement)) {
+        return;
+      }
+
+      switch (event.key) {
+        case "r":
+        case "R":
+          this.chartInstance.dispatchAction({
+            type: "dataZoom",
+            start: 0,
+            end: 100,
+          });
+          event.preventDefault();
+          break;
+        case "ArrowLeft":
+          this.shiftView(-10);
+          event.preventDefault();
+          break;
+        case "ArrowRight":
+          this.shiftView(10);
+          event.preventDefault();
+          break;
+        case "+":
+        case "=":
+          this.zoomView(0.8);
+          event.preventDefault();
+          break;
+        case "-":
+          this.zoomView(1.2);
+          event.preventDefault();
+          break;
+      }
+    },
+
+    shiftView(percent) {
+      const option = this.chartInstance.getOption();
+      const dataZoom = option.dataZoom[1];
+      const start = dataZoom.start;
+      const end = dataZoom.end;
+      const range = end - start;
+
+      const newStart = Math.max(0, Math.min(100 - range, start + percent));
+      const newEnd = newStart + range;
+
+      this.chartInstance.dispatchAction({
+        type: "dataZoom",
+        start: newStart,
+        end: newEnd,
+      });
+    },
+
+    zoomView(factor) {
+      const option = this.chartInstance.getOption();
+      const dataZoom = option.dataZoom[1];
+      const start = dataZoom.start;
+      const end = dataZoom.end;
+      const center = (start + end) / 2;
+      const currentRange = end - start;
+      const newRange = Math.max(5, Math.min(100, currentRange * factor));
+
+      const newStart = Math.max(0, center - newRange / 2);
+      const newEnd = Math.min(100, newStart + newRange);
+
+      this.chartInstance.dispatchAction({
+        type: "dataZoom",
+        start: newStart,
+        end: newEnd,
+      });
+    },
+
+    aggregateEventsByTime(chartData) {
+      return chartData.map((patient) => {
+        const eventGroups = {};
+
+        patient.events.forEach((event) => {
+          const hourKey = Math.round(event.hour * 10) / 10;
+          if (!eventGroups[hourKey]) {
+            eventGroups[hourKey] = [];
+          }
+          eventGroups[hourKey].push(event);
+        });
+
+        const aggregatedEvents = Object.entries(eventGroups).map(
+          ([hour, events]) => ({
+            hour: parseFloat(hour),
+            events: events,
+            value:
+              events.reduce((sum, e) => sum + (e.value || 0), 0) /
+              events.length,
+          })
+        );
+
+        return {
+          ...patient,
+          events: aggregatedEvents.sort((a, b) => a.hour - b.hour),
+        };
+      });
+    },
+
+    generatePatientDataPoints(patient, clusterData, patientIds) {
+      const data = [];
+
+      // 获取初始聚类（第一个聚类时间点）
+      const initialCluster = clusterData.find(
+        (cluster) =>
+          cluster.hour === Math.min(...clusterData.map((c) => c.hour))
+      );
+
+      // 如果有初始聚类，使用聚类Y坐标；否则使用默认值
+      let initialY;
+      if (initialCluster) {
+        initialY = this.calculateClusterYPosition(
+          patient.patientId,
+          initialCluster,
+          patientIds
+        );
+      } else {
+        initialY = patientIds.indexOf(patient.patientId) * 2;
+      }
+
+      // 修正的初始点 - 使用聚类结果
+      data.push({
+        value: [0, initialY],
+        patientId: patient.patientId,
+        realTime: 0,
+        events: [{ name: "初始状态", value: 0 }],
+      });
+
+      patient.events.forEach((eventGroup) => {
+        const cluster = this.findClosestCluster(eventGroup.hour, clusterData);
+        const yCoord = this.calculateClusterYPosition(
+          patient.patientId,
+          cluster,
+          patientIds
+        );
+
+        data.push({
+          value: [eventGroup.hour, yCoord],
+          patientId: patient.patientId,
+          realTime: eventGroup.hour,
+          events: eventGroup.events,
+        });
+      });
+
+      return data;
+    },
+
+    findClosestCluster(hour, clusterData) {
+      // 找到在当前时间后的聚类中距离当前时间最近的聚类
+      const clusterAfterHour = clusterData.filter(
+        (cluster) => cluster.hour >= hour
+      );
+      if (clusterAfterHour.length === 0) {
+        // 如果没有找到，则返回最后一个
+        return clusterData[clusterData.length - 1];
+      }
+      return clusterAfterHour.reduce((init, current) => {
+        return Math.abs(current.hour - hour) < Math.abs(init.hour - hour)
+          ? current
+          : init;
+      });
+    },
+    generateClusterBackgroundSeries(clusterData, patientIds) {
+      const backgroundSeries = [];
+
+      // 按时间排序聚类数据
+      const sortedClusters = [...clusterData].sort((a, b) => a.hour - b.hour);
+
+      sortedClusters.forEach((clusterInfo, clusterIndex) => {
+        clusterInfo.cluster.forEach((group, groupIndex) => {
+          const yPositions = [];
+
+          group.forEach((patientIdInGroup) => {
+            const patientIndex = patientIds.findIndex(
+              (id) => id.toLowerCase() === patientIdInGroup.toLowerCase()
+            );
+
+            if (patientIndex !== -1) {
+              // 修正：使用与calculateClusterYPosition完全相同的计算逻辑
+              // 这里需要模拟calculateClusterYPosition的计算过程
+              const yCoord = this.calculateClusterYPositionForBackground(
+                patientIdInGroup,
+                clusterInfo,
+                patientIds,
+                groupIndex
+              );
+              yPositions.push(yCoord);
+            }
+          });
+
+          if (yPositions.length > 0) {
+            // 减小Y坐标范围的扩展，使其更贴合实际数据点
+            const minY = Math.min(...yPositions) - 1.5;
+            const maxY = Math.max(...yPositions) + 1.5;
+
+            // 修正时间范围计算 - 不向后延展
+            let startTime, endTime;
+
+            if (clusterIndex === 0) {
+              // 第一个聚类，从0开始到当前聚类时间
+              startTime = 0;
+              endTime = clusterInfo.hour;
+            } else {
+              // 从上一个聚类时间开始到当前聚类时间
+              startTime = sortedClusters[clusterIndex - 1].hour;
+              endTime = clusterInfo.hour;
+            }
+
+            const clusterColor =
+              this.generateClusterBackgroundColor(groupIndex);
+
+            // 创建背景区域系列
+            backgroundSeries.push({
+              name: `cluster-bg-${clusterIndex}-${groupIndex}`,
+              type: "line",
+              data: [
+                [startTime, minY],
+                [startTime, maxY],
+                [endTime, maxY],
+                [endTime, minY],
+                [startTime, minY], // 闭合路径
+              ],
+              lineStyle: {
+                color: clusterColor,
+                width: 1.5,
+                type: "dashed",
+                opacity: 0.4,
+              },
+              symbol: "none",
+              areaStyle: {
+                color: clusterColor,
+                opacity: 0.15,
+              },
+              silent: true,
+              showInLegend: false,
+              z: -2,
+            });
+
+            // 在聚类时间点添加分割线 - 调整高度
+            backgroundSeries.push({
+              name: `cluster-divider-${clusterIndex}-${groupIndex}`,
+              type: "line",
+              data: [
+                [clusterInfo.hour, minY - 0.5], // 从背景区域底部开始
+                [clusterInfo.hour, maxY + 0.5], // 到背景区域顶部
+              ],
+              lineStyle: {
+                color: clusterColor,
+                width: 2,
+                type: "solid",
+                opacity: 0.5,
+              },
+              symbol: "none",
+              silent: true,
+              showInLegend: false,
+              z: -1,
+            });
+
+            // 聚类标签 - 调整位置
+            backgroundSeries.push({
+              name: `cluster-label-${clusterIndex}-${groupIndex}`,
+              type: "scatter",
+              data: [[clusterInfo.hour, maxY + 0.8]], // 稍微向上偏移
+              symbol: "roundRect",
+              symbolSize: [30, 16],
+              itemStyle: {
+                color: clusterColor,
+                opacity: 0.8,
+              },
+              label: {
+                show: true,
+                position: "inside",
+                formatter: `C${groupIndex + 1}`,
+                fontSize: 11,
+                fontWeight: "700",
+                color: "#fff",
+                textShadowColor: "rgba(0,0,0,0.3)",
+                textShadowBlur: 2,
+              },
+              silent: true,
+              showInLegend: false,
+              z: 2,
+            });
+
+            // 时间段标签 - 调整位置
+            backgroundSeries.push({
+              name: `time-label-${clusterIndex}-${groupIndex}`,
+              type: "scatter",
+              data: [[(startTime + endTime) / 2, minY - 0.8]], // 稍微向下偏移
+              symbol: "none",
+              label: {
+                show: true,
+                position: "bottom",
+                formatter: `${startTime}h-${endTime}h (${group.length}人)`,
+                fontSize: 9,
+                fontWeight: "600",
+                color: clusterColor,
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
+                borderColor: clusterColor,
+                borderWidth: 1,
+                borderRadius: 4,
+                padding: [2, 4],
+              },
+              silent: true,
+              showInLegend: false,
+              z: 1,
+            });
+          }
+        });
+      });
+
+      return backgroundSeries;
+    },
+
+    // 新增方法：专门为背景区域计算Y坐标
+    calculateClusterYPositionForBackground(
+      patientId,
+      cluster,
+      patientIds,
+      expectedGroupIndex
+    ) {
+      const patientIdLower = patientId.toLowerCase();
+
+      // 直接使用传入的groupIndex，因为我们已经知道这个病人在哪个组
+      const group = cluster.cluster[expectedGroupIndex];
+      const patientIndex = group.findIndex((id) => id === patientIdLower);
+
+      if (patientIndex !== -1) {
+        // 与calculateClusterYPosition使用完全相同的计算公式
+        return expectedGroupIndex * (patientIds.length * 2) + patientIndex * 2;
+      }
+
+      // 如果找不到，返回默认位置
+      return patientIds.indexOf(patientId) * 2;
+    },
+
+    // 确保calculateClusterYPosition方法与背景区域计算完全一致
+    calculateClusterYPosition(patientId, cluster, patientIds) {
+      const patientIdLower = patientId.toLowerCase();
+
+      for (
+        let groupIndex = 0;
+        groupIndex < cluster.cluster.length;
+        groupIndex++
+      ) {
+        const group = cluster.cluster[groupIndex];
+        const patientIndex = group.findIndex((id) => id === patientIdLower);
+
+        if (patientIndex !== -1) {
+          // 与背景区域使用相同的计算公式
+          return groupIndex * (patientIds.length * 2) + patientIndex * 2;
+        }
+      }
+
+      // 如果找不到，返回默认位置
+      return patientIds.indexOf(patientId) * 2;
+    },
+    setupClusterInteraction(series, clusterData) {
       let currentSelectedGroup = null;
 
-      // 添加点击事件处理
       this.chartInstance.on("click", (params) => {
-        if (
-          params.componentType === "series" &&
-          params.seriesType === "scatter"
-        ) {
+        if (params.componentType === "series") {
           const currentPatientId = params.data.patientId;
           const currentHour = Math.floor(params.data.value[0]);
 
-          // 如果点击的是当前已选中组的病人，则恢复所有病人的显示状态
           if (
             currentSelectedGroup &&
             currentSelectedGroup.includes(currentPatientId.toLowerCase())
           ) {
-            // 恢复所有点和线的透明度
             this.chartInstance.setOption({
               series: series.map((s) => ({
                 ...s,
+                lineStyle: { ...s.lineStyle, opacity: 1 },
                 itemStyle: { ...s.itemStyle, opacity: 1 },
-                markLine: {
-                  ...s.markLine,
-                  lineStyle: {
-                    ...s.markLine.lineStyle,
-                    opacity: 1,
-                  },
-                },
               })),
             });
             currentSelectedGroup = null;
             return;
           }
 
-          // 找到当前时间点最近的聚类信息
-          let relevantCluster = null;
-          let maxHour = -1;
-
-          for (const clusterInfo of clusterData) {
-            if (clusterInfo.hour <= currentHour && clusterInfo.hour > maxHour) {
-              relevantCluster = clusterInfo;
-              maxHour = clusterInfo.hour;
-            }
-          }
+          const relevantCluster = this.findClosestCluster(
+            currentHour,
+            clusterData
+          );
 
           if (relevantCluster) {
-            // 找到当前病人所在的聚类组
             let sameClusterPatients = [];
 
             for (const cluster of relevantCluster.cluster) {
@@ -428,287 +802,58 @@ export default {
               }
             }
 
-            // 更新当前选中的组
             currentSelectedGroup = sameClusterPatients.map((id) =>
               id.toLowerCase()
             );
 
-            // 设置非同组病人的点和线的透明度
             this.chartInstance.setOption({
               series: series.map((s) => ({
                 ...s,
+                lineStyle: {
+                  ...s.lineStyle,
+                  opacity: sameClusterPatients.includes(s.name) ? 1 : 0.2,
+                },
                 itemStyle: {
                   ...s.itemStyle,
-                  opacity: sameClusterPatients.includes(s.name) ? 1 : 0.1,
-                },
-                markLine: {
-                  ...s.markLine,
-                  lineStyle: {
-                    ...s.markLine.lineStyle,
-                    opacity: sameClusterPatients.includes(s.name) ? 1 : 0.1,
-                  },
+                  opacity: sameClusterPatients.includes(s.name) ? 1 : 0.2,
                 },
               })),
             });
           }
         }
       });
-
-      // 移除原有的mouseover和mouseout事件
-      this.chartInstance.off("mouseover");
-      this.chartInstance.off("mouseout");
-      // 响应窗口大小变化
-      window.addEventListener("resize", this.resizeChart);
-    },
-
-    // 生成连接同一病人的所有点的标记线，在聚类点添加垂直线段
-    // 生成连接同一病人的所有点的标记线，在聚类点添加垂直线段
-    generateMarkLines(data) {
-      if (data.length <= 1) return [];
-
-      // 按时间排序
-      const sortedData = [...data].sort((a, b) => a.value[0] - b.value[0]);
-
-      // 获取所有聚类时间点
-      const clusterTimes = this.clusterData.map((c) => c.hour);
-
-      // 生成连线数据
-      const lines = [];
-
-      for (let i = 0; i < sortedData.length - 1; i++) {
-        const startPoint = sortedData[i];
-        const endPoint = sortedData[i + 1];
-        if (
-          !startPoint.value ||
-          !endPoint.value ||
-          !Array.isArray(startPoint.value) ||
-          !Array.isArray(endPoint.value) ||
-          startPoint.value.length < 2 ||
-          endPoint.value.length < 2
-        ) {
-          continue;
-        }
-
-        const startTime = Math.round(startPoint.realTime);
-        const endTime = Math.round(endPoint.realTime);
-
-        // 检查这两个点之间是否有聚类时间点
-        const betweenClusterTimes = clusterTimes
-          .filter((time) => time >= startTime && time <= endTime)
-          .sort((a, b) => a - b);
-
-        if (betweenClusterTimes.length === 0) {
-          // 如果没有聚类时间点，直接连接（使用正确格式）
-          lines.push([
-            { coord: startPoint.value, lineStyle: { type: "solid", width: 2 } },
-            { coord: endPoint.value, lineStyle: { type: "solid", width: 2 } },
-          ]);
-        } else {
-          // 如果有聚类时间点，添加垂直过渡
-          let lastPoint = startPoint;
-
-          // 对每个中间的聚类时间点，创建两个点形成垂直线段
-          for (const clusterTime of betweenClusterTimes) {
-            // 获取该时间点对应的聚类
-            const cluster = this.clusterData.find(
-              (c) => c.hour === clusterTime
-            );
-            if (!cluster) continue;
-
-            // 找到患者在该聚类中的位置
-            const patientId = startPoint.patientId.toLowerCase();
-            const clusterIndex = cluster.cluster.findIndex((c) =>
-              c.includes(patientId)
-            );
-            if (clusterIndex === -1) continue; // 防止找不到聚类
-
-            const patientIndex = cluster.cluster[clusterIndex].findIndex(
-              (id) => id === patientId
-            );
-            if (patientIndex === -1) continue; // 防止找不到患者
-
-            // 计算Y坐标
-            const patientIds = this.patientEventData.map(
-              (item) => item.patientId
-            );
-            const yCoord =
-              clusterIndex * (patientIds.length * 2) + patientIndex * 1.5;
-            // 添加到上一个点到聚类时间点的水平线段（粗实线）
-            lines.push([
-              {
-                coord: lastPoint.value,
-                lineStyle: { type: "solid", width: 2 },
-              },
-              {
-                coord: [clusterTime, lastPoint.value[1]],
-                lineStyle: { type: "solid", width: 2 },
-              },
-            ]);
-
-            // 添加垂直过渡线段（虚线）
-            lines.push([
-              {
-                coord: [clusterTime, lastPoint.value[1]],
-                lineStyle: { type: "dashed", width: 1 },
-              },
-              {
-                coord: [clusterTime, yCoord],
-                lineStyle: { type: "dashed", width: 1 },
-              },
-            ]);
-
-            // 更新最后一个点
-            lastPoint = {
-              value: [clusterTime, yCoord],
-              patientId: startPoint.patientId,
-            };
-          }
-
-          // 添加最后一段线段到终点（粗实线）
-          lines.push([
-            { coord: lastPoint.value, lineStyle: { type: "solid", width: 2 } },
-            { coord: endPoint.value, lineStyle: { type: "solid", width: 2 } },
-          ]);
-        }
-      }
-
-      return lines;
-    },
-    generateColor(index, total) {
-      // 基准颜色 #2d5bff
-      const baseColor = {
-        r: 0x2d,
-        g: 0x5b,
-        b: 0xff,
-      };
-
-      // 计算色相偏移量，确保颜色分布均匀
-      const hueOffset = (360 / total) * index;
-
-      // 将RGB转换为HSL
-      const rgbToHsl = (r, g, b) => {
-        r /= 255;
-        g /= 255;
-        b /= 255;
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        let h,
-          s,
-          l = (max + min) / 2;
-
-        if (max === min) {
-          h = s = 0;
-        } else {
-          const d = max - min;
-          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-          switch (max) {
-            case r:
-              h = (g - b) / d + (g < b ? 6 : 0);
-              break;
-            case g:
-              h = (b - r) / d + 2;
-              break;
-            case b:
-              h = (r - g) / d + 4;
-              break;
-          }
-          h /= 6;
-        }
-        return [h * 360, s * 100, l * 100];
-      };
-
-      // 将HSL转换回RGB
-      const hslToRgb = (h, s, l) => {
-        h /= 360;
-        s /= 100;
-        l /= 100;
-        let r, g, b;
-
-        if (s === 0) {
-          r = g = b = l;
-        } else {
-          const hue2rgb = (p, q, t) => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-          };
-
-          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-          const p = 2 * l - q;
-          r = hue2rgb(p, q, h + 1 / 3);
-          g = hue2rgb(p, q, h);
-          b = hue2rgb(p, q, h - 1 / 3);
-        }
-
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-      };
-
-      // 获取基准颜色的HSL值
-      const [baseH, baseS, baseL] = rgbToHsl(
-        baseColor.r,
-        baseColor.g,
-        baseColor.b
-      );
-
-      // 基于基准颜色生成新的颜色
-      const newH = (baseH + hueOffset) % 360;
-      const [r, g, b] = hslToRgb(newH, baseS, baseL);
-
-      // 转换为16进制颜色代码
-      return `#${r.toString(16).padStart(2, "0")}${g
-        .toString(16)
-        .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
     },
 
     refreshChart() {
-      // 销毁当前图表实例
       if (this.chartInstance) {
         this.chartInstance.dispose();
       }
-      // 重新初始化图表
       this.$nextTick(() => {
         this.initChart();
       });
     },
 
-    // 修复 resizeChart 方法
     resizeChart() {
       if (!this.chartInstance) return;
 
-      try {
-        // 创建一个延迟，确保DOM已完全调整大小
-        if (this.resizeTimer) {
-          clearTimeout(this.resizeTimer);
-        }
-
-        this.resizeTimer = setTimeout(() => {
-          // 先尝试普通的 resize
-          try {
-            this.chartInstance.resize();
-          } catch (error) {
-            console.warn("图表调整大小时出错，尝试重新初始化:", error);
-            // 如果 resize 失败，尝试完全重新创建图表
-            this.chartInstance.dispose();
-            this.chartInstance = null;
-            this.$nextTick(() => {
-              this.initChart();
-            });
-          }
-        }, 100); // 添加200ms延迟，避免频繁调整
-      } catch (error) {
-        console.error("resizeChart 错误:", error);
+      if (this.resizeTimer) {
+        clearTimeout(this.resizeTimer);
       }
+
+      this.resizeTimer = setTimeout(() => {
+        try {
+          this.chartInstance.resize();
+        } catch (error) {
+          console.warn("图表调整大小时出错:", error);
+          this.refreshChart();
+        }
+      }, 100);
     },
   },
 
-  // 确保在组件销毁时清理资源
   beforeUnmount() {
-    // 组件销毁前移除事件监听
     window.removeEventListener("resize", this.resizeChart);
-    // 销毁图表实例
+    document.removeEventListener("keydown", this.handleKeydown);
     if (this.chartInstance) {
       this.chartInstance.dispose();
     }

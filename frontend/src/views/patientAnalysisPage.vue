@@ -370,7 +370,7 @@
             <div class="rules-part">
               <h3>病情发展图表解释</h3>
               <!-- 显示模型解释内容 -->
-              <!-- <div v-if="modelExplanation" class="model-explanation">
+              <div v-if="modelExplanation" class="model-explanation">
                 <div v-html="renderedExplanation"></div>
               </div>
               <div v-else class="model-explanation-placeholder">
@@ -386,7 +386,7 @@
                     isGeneratingExplanation ? "生成中..." : "生成病情发展解释"
                   }}
                 </button>
-              </div> -->
+              </div>
             </div>
           </div>
 

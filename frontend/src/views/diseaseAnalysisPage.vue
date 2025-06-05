@@ -135,7 +135,7 @@
           <div class="left-half">
             <div class="model-explanation">
               <h3>图表解释</h3>
-              <!-- <div
+              <div
                 v-if="chartExplanation"
                 v-html="parseMarkdown(chartExplanation)"
               ></div>
@@ -147,7 +147,7 @@
                 <button class="analyze-btn" @click="analyzeChart">
                   <i class="fas fa-chart-line"></i> 点击生成AI分析结果
                 </button>
-              </div> -->
+              </div>
             </div>
           </div>
           <div class="right-half">
