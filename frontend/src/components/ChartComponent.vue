@@ -51,6 +51,7 @@ export default {
   },
   mounted() {
 <<<<<<< HEAD
+<<<<<<< HEAD
     try {
       // Wait for DOM to be ready
       this.$nextTick(() => {
@@ -62,6 +63,8 @@ export default {
     }
     //this.initChart();
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
     // try {
     //   // Wait for DOM to be ready
     //   this.$nextTick(() => {
@@ -83,6 +86,9 @@ export default {
       
 =======
 
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
       // 使用传入的数据，如果没有数据则不渲染图表
       if (this.patientEventData.length === 0 || this.clusterData.length === 0) {
@@ -130,6 +136,10 @@ export default {
             value_display: 0,
             patientId: patient.patientId,
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            realTime: 0,
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
 =======
             realTime: 0,
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
@@ -170,6 +180,10 @@ export default {
               value_display: event.value,
               patientId: patient.patientId,
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+              realTime: event.hour,
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
 =======
               realTime: event.hour,
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
@@ -181,7 +195,11 @@ export default {
           name: patient.patientId,
           type: "scatter",
 <<<<<<< HEAD
+<<<<<<< HEAD
           symbolSize: 15,          
+=======
+          symbolSize: 12,
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
 =======
           symbolSize: 12,
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
@@ -194,7 +212,11 @@ export default {
               borderColor: "#fff",
               borderWidth: 2,
 <<<<<<< HEAD
+<<<<<<< HEAD
               shadowBlur: 10,
+=======
+              shadowBlur: 5,
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
 =======
               shadowBlur: 5,
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
@@ -240,17 +262,23 @@ export default {
                     params.data?.name || "未知"
                   }</p>
 <<<<<<< HEAD
+<<<<<<< HEAD
                   <p><strong>严重程度:</strong> ${
                     params.data?.value_display || "未知"
                   }</p>
                   <p><strong>发生时间:</strong> ${
                     Math.round(params.data?.value?.[0]) || "未知"
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
                   <p><strong>异常值:</strong> ${
                     params.data?.value_display || "未知"
                   }</p>
                   <p><strong>发生时间:</strong> ${
                     Math.round(params.data?.realTime) || "未知"
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
                   }时</p>
                 </div>
@@ -274,6 +302,9 @@ export default {
           selectedMode: false,
 =======
           selectedMode: true,
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
           data: patientIds,
           textStyle: {
@@ -297,7 +328,10 @@ export default {
           },
           formatter: (name) => `病人 ${name}`,
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
         },
         toolbox: {
           right: 20,
@@ -315,6 +349,7 @@ export default {
           min: 0,
           max: maxHour,
           splitLine: { show: true },
+<<<<<<< HEAD
 <<<<<<< HEAD
           // 添加安全处理，确保轴的范围有效
           scale: true,
@@ -337,6 +372,41 @@ export default {
           },
           // 其他配置保持不变
 =======
+=======
+        },
+        yAxis: {
+          type: "value", // 保持value类型以支持数值坐标
+          show: true, // 保持轴的基本结构
+          name: "病人聚类", // 轴名称
+          nameLocation: "middle",
+          nameGap: 20,
+          // 范围控制
+          min: 0,
+          max: function (value) {
+            return value.max !== undefined ? Math.ceil(value.max + 1) : 10;
+          },
+          nameTextStyle: {
+            fontSize: 13,
+            fontWeight: 500,
+            color: "#2d5bff",
+          },
+          // 隐藏轴线
+          axisLine: {
+            show: false,
+          },
+          // 隐藏刻度
+          axisTick: {
+            show: false,
+          },
+          // 隐藏标签
+          axisLabel: {
+            show: false,
+          },
+          // 隐藏分割线
+          splitLine: {
+            show: false,
+          },
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
         },
         yAxis: {
           type: "value", // 保持value类型以支持数值坐标
@@ -415,9 +485,15 @@ export default {
         dataZoom: [
           {
 <<<<<<< HEAD
+<<<<<<< HEAD
             type: 'inside',
             xAxisIndex: 0,
             filterMode: 'filter',
+=======
+            type: "inside",
+            xAxisIndex: 0, // 只对x轴生效，不影响y轴
+            filterMode: "filter",
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
 =======
             type: "inside",
             xAxisIndex: 0, // 只对x轴生效，不影响y轴
@@ -430,6 +506,7 @@ export default {
             preventDefaultMouseMove: true,
             // 添加安全处理
 <<<<<<< HEAD
+<<<<<<< HEAD
             rangeMode: ['value', 'value']
           },
           {
@@ -437,6 +514,8 @@ export default {
             xAxisIndex: 0,
             filterMode: 'filter',
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
             rangeMode: ["value", "value"],
             // 确保只在x轴方向缩放
             zoomLock: false,
@@ -447,11 +526,15 @@ export default {
             xAxisIndex: 0, // 只对x轴生效，不影响y轴
             // yAxisIndex: null, // <-- Remove this line
             filterMode: "filter",
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
             height: 20,
             bottom: 10,
             start: 0,
             end: 100,
+<<<<<<< HEAD
 <<<<<<< HEAD
             handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7v-1.2h6.6V24.4z',
             handleSize: '80%',
@@ -462,6 +545,8 @@ export default {
             maxSpan: 100
           }
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
             handleIcon:
               "M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7v-1.2h6.6V24.4z",
             handleSize: "80%",
@@ -491,6 +576,7 @@ export default {
 
       // 应用配置
       this.chartInstance.setOption(option);
+<<<<<<< HEAD
 <<<<<<< HEAD
       // 记录当前选中的组
       let currentSelectedGroup = null;
@@ -532,6 +618,8 @@ export default {
         }
       });
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
       // 监听 legend 选择变化，隐藏时清空 markLine
       this.chartInstance.on("legendselectchanged", (params) => {
         const selected = params.selected;
@@ -557,6 +645,9 @@ export default {
       //记录当前选中的组
       let currentSelectedGroup = null;
 
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
       // 添加点击事件处理
       this.chartInstance.on("click", (params) => {
@@ -646,6 +737,7 @@ export default {
     },
 
     // 生成连接同一病人的所有点的标记线，在聚类点添加垂直线段
+<<<<<<< HEAD
 <<<<<<< HEAD
     generateMarkLines(data) {
       console.log('===== generateMarkLines 方法被调用 =====');
@@ -833,6 +925,8 @@ export default {
         return []; // 出错时返回空数组，避免图表崩溃
       }
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
     // 生成连接同一病人的所有点的标记线，在聚类点添加垂直线段
     generateMarkLines(data) {
       if (data.length <= 1) return [];
@@ -944,6 +1038,9 @@ export default {
       }
 
       return lines;
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
     },
     generateColor(index, total) {
@@ -1037,6 +1134,7 @@ export default {
 
     refreshChart() {
 <<<<<<< HEAD
+<<<<<<< HEAD
       console.log('开始刷新图表');
       // 保存当前的缩放范围和选中状态
       let savedZoomRange = null;
@@ -1090,6 +1188,8 @@ export default {
     }
   },
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
       // 销毁当前图表实例
       if (this.chartInstance) {
         this.chartInstance.dispose();
@@ -1130,11 +1230,15 @@ export default {
     },
   },
 
+<<<<<<< HEAD
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
+=======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
   // 确保在组件销毁时清理资源
   beforeUnmount() {
     // 组件销毁前移除事件监听
     window.removeEventListener("resize", this.resizeChart);
+<<<<<<< HEAD
 <<<<<<< HEAD
     // 清理计时器
     if (this.resizeTimer) {
@@ -1143,6 +1247,8 @@ export default {
     if (this.zoomTimer) {
       clearTimeout(this.zoomTimer);
     }
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
 =======
 >>>>>>> parent of 4eedc2b (feat-2026/06/06)
     // 销毁图表实例

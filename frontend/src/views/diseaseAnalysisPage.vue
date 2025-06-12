@@ -136,8 +136,11 @@
             <div class="model-explanation">
               <h3>图表解释</h3>
 <<<<<<< HEAD
+<<<<<<< HEAD
               <div v-if="chartExplanation" v-html="parseMarkdown(chartExplanation)"></div>
 =======
+=======
+>>>>>>> parent of 4eedc2b (feat-2026/06/06)
               <!-- <div
                 v-if="chartExplanation"
                 v-html="parseMarkdown(chartExplanation)"
