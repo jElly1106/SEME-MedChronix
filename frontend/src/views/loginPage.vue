@@ -1,5 +1,10 @@
 <template>
   <div class="login-page">
+    <!-- 返回首页按钮 -->
+    <button class="back-home-btn" @click="goToDashboard()">
+      <i class="fa fa-arrow-left"></i> 返回首页
+    </button>
+
     <div class="login-container">
       <div class="login-card">
         <h2 class="login-title">用户登录</h2>
@@ -90,7 +95,7 @@ export default {
             this.$router.push('/qualification-review');
           } else {
             // 普通用户跳转到首页或其他页面
-            this.$router.push('/diseaseAnalysis');
+            this.$router.push('/home');
           }
           
           ElMessage.success('登录成功');

@@ -58,7 +58,6 @@ def update_patient(patient_id):
     """根据 id 修改病人信息"""
     data = request.get_json()
     patient = Patient.query.get_or_404(patient_id)
-    print("!!!!!!!!!!!!!",patient)
 
     # 更新字段（你也可以写得更智能一些）
     patient.name = data.get('name', patient.name)
@@ -242,6 +241,7 @@ def filter_patients():
         return None
     # 构建查询条件
     filters = []
+
     if status_list:
         filters.append(Patient.status.in_(status_list))
     

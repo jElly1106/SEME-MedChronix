@@ -1,9 +1,12 @@
 /* eslint-disable */
 /** 该文件为路由配置文件，用于配置路由信息 */
 import { createRouter, createWebHashHistory } from 'vue-router'
+import homePage from '@/views/homePage.vue'
 import loginPage from '@/views/loginPage.vue'
 import registerPage from '@/views/registerPage.vue'
 import diseaseAnalysisPage from '@/views/diseaseAnalysisPage.vue'; // 假设这个是你疾病分析页面的路径
+import patientAnalysisPage from '@/views/patientAnalysisPage.vue'; // 假设这个是你患者分析页面的路径
+import DashBoardPage from '@/views/dashBoardPage.vue';
 import ProfilePage from '@/views/ProfilePage.vue'; // 个人信息管理页面
 import QualificationReviewPage from '@/views/QualificationReviewPage.vue'; // 资质审核页面
 import permissionConfigPage from '@/views/permissionConfigPage.vue';
@@ -15,13 +18,27 @@ const router = createRouter({
     routes: [
         {
             path: '/',
-            redirect: '/login'
+            redirect: '/dashBoardPage'
+        },
+        {
+            path: '/dashBoardPage',
+            name: 'dashBoardPage',
+            component: DashBoardPage,
+            meta: {
+                requiresAuth: true,
+                requiresQualification: true // 需要资质验证
+            }
         },
         {
             path: '/login',
             name: 'Login',
             component: loginPage,
             //props: { type: 'login' }
+        },
+        {
+            path:'/home',
+            name:'Home',
+            component:homePage,
         },
         {
             path: '/register',
@@ -32,6 +49,15 @@ const router = createRouter({
             path: '/diseaseAnalysis',
             name: 'DiseaseAnalysis',
             component: diseaseAnalysisPage,
+            meta: {
+                requiresAuth: true,
+                requiresQualification: true // 需要资质验证
+            }
+        },
+        {
+            path: '/patientAnalysis',
+            name: 'patientAnalysis',
+            component: patientAnalysisPage,
             meta: {
                 requiresAuth: true,
                 requiresQualification: true // 需要资质验证

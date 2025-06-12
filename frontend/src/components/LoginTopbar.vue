@@ -3,7 +3,7 @@
     <div class="navbar-container">
       <!-- 左侧区域 - 网站标识 -->
       <div class="logo-container">
-        <img src="../assets/logo.png" alt="MedChronix Logo" class="site-logo" />
+        <img src="@/assets/logo.jpg" alt="MedChronix Logo" class="site-logo" />
         <span class="logo-text">智脉时序</span>
       </div>
 
