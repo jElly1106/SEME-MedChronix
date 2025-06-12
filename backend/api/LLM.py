@@ -61,13 +61,14 @@ def image_analysis():
 def multimodal_conversation_call():
     try:
         # 获取上传的图片文件
-        file = request.files.get('image')
+        print(f"Received file: {request.files.get('image')}")
+        file = request.files.get('image')    
         if not file:
             return jsonify({"error": "没有提供图片文件"}), 400
         
         # 获取问题文本
         question = request.form.get('question', "请描述这张图片")
-        
+        print(f"Received question: {question}")
         # 将图片文件编码为 Base64
         base64_image = encode_image(file)
         

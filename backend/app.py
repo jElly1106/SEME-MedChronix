@@ -14,6 +14,7 @@ from api.predict import predict_bp
 from api.rule import rule_bp
 from api.precondition import precondition_bp
 from api.audit_log import audit_log_bp
+from api.ct_scan import ct_scan_bp
 from flask_cors import CORS
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
@@ -71,6 +72,8 @@ def create_app():
     app.register_blueprint(rule_bp,url_prefix='/api/rule')
     app.register_blueprint(precondition_bp,url_prefix='/api/precondition')
     app.register_blueprint(audit_log_bp, url_prefix='/api/audit_log')
+
+    
     with app.app_context():
         db.create_all()
 

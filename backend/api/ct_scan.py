@@ -101,6 +101,7 @@ def delete_ct_scan(ct_scan_id):
 def get_ct_scans_by_patient(patient_id):
     """根据病人ID获取所有CT扫描记录。"""
     try:
+        print(f"Fetching CT scans for patient ID: {patient_id}")
         ct_scans = CTScan.query.filter_by(patient_id=patient_id).all()
         ct_scans_list = [ct.to_dict() for ct in ct_scans]
         return jsonify({'data': ct_scans_list}), 200

@@ -302,6 +302,7 @@ class PatientEvent(db.Model):
 
     patient = db.relationship('Patient', backref=db.backref('patient_events', lazy=True))
     event = db.relationship('Event', backref=db.backref('patient_events', lazy=True))
+    case_id = db.Column(db.Integer, db.ForeignKey('patient_case.id'), nullable=True)  # 病例id
 
     def to_dict(self):
         return {
