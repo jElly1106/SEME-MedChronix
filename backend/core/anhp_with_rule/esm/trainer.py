@@ -60,7 +60,7 @@ class Trainer(Manager):
                 print(message)
                 tic = time.time()
                 log_lik, acc, (event_ll, non_event_ll), num_tokens, num_events, _, _, _, _ \
-                    = self.run_one_iteration(self.model, self.test_loader, "test")
+                    = self.run_one_iteration(self.model, self.test_loader, "tests")
                 
                 time_valid = (time.time() - tic)
                 self.writer.add_scalar('Test/LogLik_per_token', log_lik / num_tokens, _epoch)
@@ -68,7 +68,7 @@ class Trainer(Manager):
                 self.writer.add_scalar('Test/Non_Event_LL', non_event_ll / num_tokens, _epoch)
                 self.writer.add_scalar('Test/Accuracy', acc, _epoch)
 
-                message = f"[ Epoch {_epoch} (test) ]: time to validate is {time_valid}, valid log-like is {log_lik / num_tokens}, valid acc is {acc : .4f}, " \
+                message = f"[ Epoch {_epoch} (tests) ]: time to validate is {time_valid}, valid log-like is {log_lik / num_tokens}, valid acc is {acc : .4f}, " \
                           f"valid_event_ll is {event_ll / num_tokens: .4f}, valid_non_event_ll is {non_event_ll / num_tokens: .4f}"
                 self.log.checkpoint(message)
                 print(message)

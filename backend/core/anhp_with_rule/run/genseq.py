@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # !/usr/bin/python
 """
-test neural Datalog through time (NDTT)
+tests neural Datalog through time (NDTT)
 @author: hongyuan
 """
 
@@ -37,12 +37,12 @@ def main():
         '-d', '--Domain', default="robocup", type=str, help='which domain to work on?'
     )
     parser.add_argument(
-        '-fn', '--FolderName', default="test", type=str,
+        '-fn', '--FolderName', default="tests", type=str,
         help='base name of the folder to store the model (and log)?'
     )
     # parser.add_argument(
-    #     '-s', '--Split', required=True, type=str, help='what split to test?',
-    #     choices = ['train', 'dev', 'test']
+    #     '-s', '--Split', required=True, type=str, help='what split to tests?',
+    #     choices = ['train', 'dev', 'tests']
     # )
     # parser.add_argument(
     #     '-r', '--Ratio', default=1.0, type=float, help='fraction of data to use'

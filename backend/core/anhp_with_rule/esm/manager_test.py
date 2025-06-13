@@ -44,7 +44,7 @@ class Manager:
             
     def get_dataloader(self, args):
         loaders = []
-        splits = ['train','test']
+        splits = ['train','tests']
         event_types = None
         token_types = 0
         for _split in splits:

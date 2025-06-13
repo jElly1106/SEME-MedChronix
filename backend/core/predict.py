@@ -156,7 +156,7 @@ def query_and_prepare_data(test_pkl):
     all_groups = list(groups.values())
     
     # 构造输出字典
-    test_dict = {'dim_process': 15, 'test': all_groups}
+    test_dict = {'dim_process': 15, 'tests': all_groups}
     
     # 确保目录存在
     os.makedirs(os.path.dirname(test_pkl), exist_ok=True)
@@ -300,9 +300,9 @@ def run_command_with_args(test_path, test_data_path, test_model_path):
     # 如果没有成功解析患者ID，则从test.pkl中获取
     if not all_patient_ids:
         print("未从输出中解析到患者ID，尝试从test.pkl中获取")
-        with open(os.path.join(test_data_path, "test.pkl"), 'rb') as f:
+        with open(os.path.join(test_data_path, "tests.pkl"), 'rb') as f:
             test_data = pickle.load(f)
-        all_patient_ids = [[group[0]['id']] for group in test_data['test']]
+        all_patient_ids = [[group[0]['id']] for group in test_data['tests']]
     # print("\n数组形状信息:")
     # print(f"all_intensity_matrices: {len(all_intensity_matrices)} 个批次")
     # if all_intensity_matrices:
@@ -492,7 +492,7 @@ def save_predictions_to_db(all_predictions):
 
 def run():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    test_pkl_path = os.path.join(current_dir, "anhp_with_rule", "data", "test.pkl")
+    test_pkl_path = os.path.join(current_dir, "anhp_with_rule", "data", "tests.pkl")
     test_path=os.path.join(current_dir, "anhp_with_rule", "test1.py")
     test_data_path=os.path.join(current_dir, "anhp_with_rule", "data")
     test_model_path=os.path.join(current_dir, "anhp_with_rule","model.pth")

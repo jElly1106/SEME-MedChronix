@@ -89,7 +89,7 @@ class Generator(Manager):
         return results
 
     def run(self):
-        splits = ["train", "test", "dev"]
+        splits = ["train", "tests", "dev"]
         num_seqs = self.args.NumSeqs
         train_num = int(num_seqs)
         dev_num = 1000

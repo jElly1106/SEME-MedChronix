@@ -41,7 +41,7 @@ class Manager:
         self.type_weights = torch.tensor(weights, dtype=torch.float32).cuda()
     def get_dataloader(self, args):
         loaders = []
-        splits = ["train", 'dev', 'test']
+        splits = ["train", 'dev', 'tests']
         event_types = None
         token_types = 0
         for _split in splits:
@@ -63,8 +63,8 @@ class Manager:
         return loaders
 
     def run_one_iteration(self, model:XFMRNHPFast, dataLoader, mode, optimizer=None,epoch=0):
-        assert mode in {"train", "eval","test"}
-        if mode == "eval" or "test":
+        assert mode in {"train", "eval","tests"}
+        if mode == "eval" or "tests":
             model = model.eval()
         else:
             assert optimizer is not None

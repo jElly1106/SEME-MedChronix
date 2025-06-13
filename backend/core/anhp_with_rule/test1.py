@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # !/usr/bin/python
 """
-test neural Datalog through time (NDTT)
+tests neural Datalog through time (NDTT)
 @author: hongyuan
 """
 
@@ -39,8 +39,8 @@ def main():
         help='base name of the folder to store the model (and log)?'
     )
     parser.add_argument(
-        '-s', '--Split', type=str, help='what split to test?',
-        choices = ['train', 'dev', 'test']
+        '-s', '--Split', type=str, help='what split to tests?',
+        choices = ['train', 'dev', 'tests']
     )
     parser.add_argument(
         '-r', '--Ratio', default=1.0, type=float, help='fraction of data to use'
@@ -62,7 +62,7 @@ def main():
         help='constant of N=O(I), where N is # of sampled time points for integral'
     )
     parser.add_argument(
-        '-pred', '--Predict', action='store_true', help='test on prediction?'
+        '-pred', '--Predict', action='store_true', help='tests on prediction?'
     )
     parser.add_argument(
         '-nobj', '--NumObject', default=1, type=int, 

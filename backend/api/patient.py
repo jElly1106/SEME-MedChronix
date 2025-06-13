@@ -265,7 +265,7 @@ def filter_patients():
     patients = db.session.query(Patient).filter(and_(*filters)).all()
     result = [patient.to_dict() for patient in patients]
 
-    ##25/4/1 test
+    ##25/4/1 tests
     result = []
 
     for patient in patients:

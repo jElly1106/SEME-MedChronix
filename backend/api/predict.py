@@ -58,7 +58,7 @@ def query_and_prepare_data(test_pkl,patient_id):
     all_groups = list(groups.values())
 
     # 构造字典，每个字典中包含 dim_process 和对应数据
-    tes_dict = {'dim_process': 18, 'test': all_groups}
+    tes_dict = {'dim_process': 18, 'tests': all_groups}
 
     # 保存为 pickle 文件
     with open(test_pkl, 'wb') as f:
@@ -85,7 +85,7 @@ def get_predict_time():
     """Get the patient information."""
     date = request.get_json()
     patience_id = date['patience_id']
-    query_and_prepare_data("data/test.pkl",patience_id)
+    query_and_prepare_data("data/tests.pkl",patience_id)
     run_command_with_args()
     
 @predict_bp.route('/get_cluster_result', methods=['GET'])

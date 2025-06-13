@@ -311,8 +311,8 @@ def main():
         help='base name of the folder to store the model (and log)?'
     )
     parser.add_argument(
-        '-s', '--Split', required=True, type=str, help='what split to test?',
-        choices = ['train', 'dev', 'test']
+        '-s', '--Split', required=True, type=str, help='what split to tests?',
+        choices = ['train', 'dev', 'tests']
     )
     parser.add_argument(
         '-ps', '--PathStorage', type=str, default='../..',
